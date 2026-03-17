@@ -1,0 +1,2898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analizador CLS · ASFA Digital Vía</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:        #f0f2f5;
+    --surface:   #ffffff;
+    --surface2:  #e8eaee;
+    --border:    #d0d4dc;
+    --accent:    #c47a00;
+    --accent2:   #1a6fba;
+    --green:     #1a8a4a;
+    --red:       #cc2a2a;
+    --yellow:    #c47a00;
+    --text:      #1a1e2a;
+    --muted:     #6b7280;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 10px;
+    text-transform: uppercase;
+  }
+  header h1 {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  header span {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-left: auto;
+  }
+
+  /* ── DROP ZONE ── */
+  #dropzone {
+    border: 2px dashed var(--border);
+    background: var(--surface);
+    margin: 32px auto;
+    max-width: 700px;
+    padding: 64px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  #dropzone:hover, #dropzone.drag { border-color: var(--accent); background: #e4e8ef; }
+  #dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  #dropzone .icon { font-size: 40px; margin-bottom: 16px; filter: grayscale(1); opacity: .5; }
+  #dropzone h2 { font-family: var(--sans); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  #dropzone p { color: var(--muted); font-size: 13px; }
+  #dropzone .ext { display: inline-block; margin-top: 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--accent); padding: 3px 10px; font-size: 12px; letter-spacing: 1px; }
+
+  /* ── MAIN LAYOUT ── */
+  #app { display: none; padding: 0 24px 60px; max-width: 1600px; margin: 0 auto; }
+  #app.visible { display: block; }
+
+  /* ── FILE INFO BAR ── */
+  #fileinfo {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex; gap: 24px; align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .fi-item { display: flex; flex-direction: column; gap: 2px; }
+  .fi-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .fi-val { font-size: 14px; color: var(--accent); font-weight: 500; }
+
+  /* ── PROGRESS OVERLAY ── */
+  #progress-overlay {
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: rgba(240,242,245,0.88); backdrop-filter: blur(3px);
+    align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+  }
+  #progress-overlay.visible { display: flex; }
+  .progress-box {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 32px 48px; text-align: center; min-width: 320px;
+    box-shadow: 0 8px 32px #00000018;
+  }
+  .progress-title {
+    font-family: var(--sans); font-size: 16px; font-weight: 700;
+    color: var(--text); margin-bottom: 18px;
+  }
+  .progress-bar-wrap {
+    background: var(--surface2); height: 8px; border-radius: 2px;
+    overflow: hidden; margin-bottom: 12px;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--accent2);
+    border-radius: 2px; transition: width .1s linear;
+    width: 0%;
+  }
+  .progress-label { font-size: 12px; color: var(--muted); }
+
+  /* ── TABLA PAGINADA ── */
+  #tbl-load-more {
+    display: none; width: 100%; padding: 10px;
+    background: var(--surface2); border: none; border-top: 1px solid var(--border);
+    color: var(--accent2); font-family: var(--mono); font-size: 12px;
+    cursor: pointer; transition: background .15s;
+  }
+  #tbl-load-more:hover { background: var(--border); }
+
+  /* ── SECTION TITLES ── */
+  .section-title {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  /* ── GRID LAYOUT ── */
+  #layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+  @media(max-width: 1024px){ #layout { grid-template-columns: 1fr; } }
+
+  /* ── CABECERA PANEL ── */
+  #panel-cabecera { background: var(--surface); border: 1px solid var(--border); padding: 20px; }
+  .cab-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 7px 0; border-bottom: 1px solid var(--surface2);
+    gap: 12px;
+  }
+  .cab-row:last-child { border-bottom: none; }
+  .cab-key { color: var(--muted); font-size: 12px; flex-shrink: 0; max-width: 55%; }
+  .cab-val { color: var(--accent2); font-size: 13px; text-align: right; word-break: break-all; }
+  .cab-val.highlight { color: var(--accent); }
+  .cab-val.good { color: var(--green); }
+  .cab-val.bad { color: var(--red); }
+
+  /* ── SUBGROUP IN CABECERA ── */
+  .cab-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .cab-group-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+
+  /* ── PAQUETES PANEL ── */
+  #panel-paquetes { background: var(--surface); border: 1px solid var(--border); padding: 20px; }
+
+  /* ── FILTROS ── */
+  #filters {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-group label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  input[type=text], input[type=date], select {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 6px 10px; outline: none;
+    transition: border-color .15s;
+  }
+  input[type=text]:focus, select:focus { border-color: var(--accent2); }
+  select option { background: var(--surface); }
+  .btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 12px;
+    padding: 7px 14px; cursor: pointer; letter-spacing: .5px;
+    transition: all .15s; align-self: flex-end;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { border-color: var(--accent2); color: var(--accent2); }
+  .btn.primary:hover { background: var(--accent2)22; }
+
+  #pkt-stats { font-size: 12px; color: var(--muted); align-self: flex-end; margin-left: auto; }
+  #pkt-stats strong { color: var(--text); }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; max-height: 65vh; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2); border-bottom: 2px solid var(--border);
+    color: var(--muted); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 8px 10px; text-align: left;
+    position: sticky; top: 0; z-index: 5;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  thead th:hover { color: var(--accent); }
+  thead th.sorted { color: var(--accent2); }
+  thead th .sort-arrow { margin-left: 4px; opacity: .5; }
+  thead th.sorted .sort-arrow { opacity: 1; }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: #e4e8ef; }
+  tbody tr.err { border-left: 3px solid var(--red); }
+  td { padding: 7px 10px; font-size: 13px; white-space: nowrap; }
+
+  .td-num { color: var(--muted); font-size: 12px; }
+  .td-code { color: var(--accent); font-weight: 600; }
+  .td-varname { color: var(--text); font-size: 12px; max-width: 200px; white-space: normal; line-height: 1.3; }
+  .td-ts { color: var(--accent2); font-size: 12px; }
+  .td-val { color: var(--green); }
+  .td-interp { color: var(--text); font-size: 12px; white-space: normal; max-width: 280px; line-height: 1.4; }
+  .td-sensado { color: var(--accent2); font-weight: 600; font-size: 12px; white-space: nowrap; }
+  .td-eficacia { color: var(--green); font-weight: 600; font-size: 11px; white-space: nowrap; }
+  .td-sin-eficacia { color: var(--red); font-size: 11px; white-space: nowrap; }
+  .td-chk { font-size: 11px; }
+  .chk-ok { color: var(--green); }
+  .chk-err { color: var(--red); font-weight: 700; }
+
+  /* ── EMPTY / ERROR STATES ── */
+  .empty-msg { color: var(--muted); text-align: center; padding: 40px; font-size: 14px; }
+  #error-banner {
+    display: none; background: #fdf0f0; border: 1px solid var(--red);
+    color: var(--red); padding: 12px 20px; margin: 16px 0; font-size: 13px;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── ANIMATION ── */
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+  #app.visible { animation: fadeIn .3s ease; }
+
+  /* ── MULTISELECT CÓDIGO ── */
+  .multiselect-wrap { position: relative; width: 220px; }
+  .multiselect-trigger {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 6px 10px; cursor: pointer; display: flex;
+    justify-content: space-between; align-items: center; gap: 8px;
+    transition: border-color .15s; user-select: none;
+  }
+  .multiselect-trigger:hover { border-color: var(--accent2); }
+  .multiselect-trigger.open { border-color: var(--accent2); }
+  .ms-arrow { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+  #f-code-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .multiselect-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0;
+    width: 300px; background: var(--surface); border: 1px solid var(--accent2);
+    z-index: 200; box-shadow: 0 8px 24px #00000022;
+  }
+  .multiselect-dropdown.open { display: block; }
+  .ms-search-wrap { padding: 8px; border-bottom: 1px solid var(--border); }
+  .ms-search-wrap input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 12px;
+    padding: 5px 8px; outline: none;
+  }
+  .ms-search-wrap input:focus { border-color: var(--accent2); }
+  .ms-actions {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  }
+  .ms-actions button {
+    flex: 1; background: transparent; border: none; border-right: 1px solid var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .5px;
+    padding: 5px 0; cursor: pointer; transition: color .15s, background .15s;
+  }
+  .ms-actions button:last-child { border-right: none; }
+  .ms-actions button:hover { color: var(--accent); background: var(--surface2); }
+  .ms-list { max-height: 240px; overflow-y: auto; }
+  .ms-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    cursor: pointer; transition: background .1s; font-size: 12px;
+    border-bottom: 1px solid var(--surface2);
+  }
+  .ms-item:last-child { border-bottom: none; }
+  .ms-item:hover { background: var(--surface2); }
+  .ms-item input[type=checkbox] { accent-color: var(--accent2); width: 13px; height: 13px; flex-shrink: 0; cursor: pointer; }
+  .ms-item-code { color: var(--accent); font-weight: 600; min-width: 44px; }
+  .ms-item-name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ms-item.checked .ms-item-name { color: var(--text); }
+
+  /* ── PESTAÑAS ── */
+  .tabs {
+    display: flex; gap: 0; border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; padding: 10px 22px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    letter-spacing: .5px; color: var(--muted);
+    cursor: pointer; transition: color .15s, border-color .15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── ESTADÍSTICAS ── */
+  #stats-summary {
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 16px 22px; flex: 1; min-width: 160px;
+  }
+  .stat-card-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-card-val { font-size: 24px; font-weight: 700; font-family: var(--sans); color: var(--accent2); }
+  .stat-card-val.red { color: var(--red); }
+  .stat-card-val.green { color: var(--green); }
+
+  #stats-table-wrap { overflow-x: auto; }
+  #stats-table { width: 100%; border-collapse: collapse; }
+  #stats-table thead th {
+    background: var(--surface2); border-bottom: 2px solid var(--border);
+    color: var(--muted); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 8px 12px; text-align: left;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  #stats-table thead th:hover { color: var(--accent); }
+  #stats-table thead th.sorted { color: var(--accent2); }
+  #stats-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  #stats-table tbody tr:hover { background: var(--surface2); }
+  #stats-table td { padding: 8px 12px; font-size: 13px; }
+  .st-code { color: var(--accent); font-weight: 600; }
+  .st-name { color: var(--text); }
+  .st-count { color: var(--accent2); font-weight: 600; text-align: right; }
+  .st-pct { color: var(--muted); text-align: right; }
+  .st-bar-cell { width: 180px; padding: 8px 12px; }
+  .st-bar-wrap { background: var(--surface2); height: 10px; border-radius: 2px; overflow: hidden; }
+  .st-bar { height: 100%; background: var(--accent2); border-radius: 2px; transition: width .4s ease; }
+  .st-chk-ok  { color: var(--green); font-size: 12px; }
+  .st-chk-err { color: var(--red);   font-size: 12px; font-weight: 700; }
+
+  /* ── TOGGLE VISTA ESTADÍSTICAS ── */
+  .stats-view-toggle {
+    display: flex; gap: 0; margin-bottom: 16px;
+    border: 1px solid var(--border); width: fit-content;
+  }
+  .stats-view-btn {
+    background: transparent; border: none; border-right: 1px solid var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 12px;
+    padding: 7px 18px; cursor: pointer; transition: all .15s;
+  }
+  .stats-view-btn:last-child { border-right: none; }
+  .stats-view-btn.active { background: var(--accent2); color: #fff; }
+  .stats-view-btn:not(.active):hover { color: var(--accent2); background: var(--surface2); }
+
+  #stats-chart-wrap {
+    display: none;
+    align-items: flex-start; gap: 32px; flex-wrap: wrap;
+  }
+  #stats-chart-wrap.visible { display: flex; }
+  #stats-pie-canvas { max-width: 420px; max-height: 420px; }
+  #stats-legend {
+    flex: 1; min-width: 220px; max-height: 420px;
+    overflow-y: auto; font-size: 12px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid var(--surface2);
+  }
+  .legend-item:last-child { border-bottom: none; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-code { color: var(--accent); font-weight: 600; min-width: 44px; }
+  .legend-name { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-pct  { color: var(--accent2); font-weight: 600; min-width: 48px; text-align: right; }
+
+  /* ── GRÁFICO DE SENSADO ── */
+  .sensado-legend-bar {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-bottom: 18px; padding: 12px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .sensado-legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--muted);
+  }
+  .sensado-legend-item canvas { display: block; }
+  .sensado-scroll-wrap {
+    overflow-x: auto; overflow-y: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 0;
+  }
+  #sensado-canvas { display: block; cursor: crosshair; }
+  .sensado-tooltip {
+    display: none; position: fixed; z-index: 500;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 8px 12px; font-size: 12px; color: var(--text);
+    pointer-events: none; box-shadow: 0 4px 12px #00000022;
+    max-width: 260px; line-height: 1.6;
+  }
+  .sensado-empty {
+    color: var(--muted); font-size: 13px; padding: 40px;
+    text-align: center;
+  }
+
+  /* ── ERRORES DETECTADOS ── */
+  .err-summary-bar {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .err-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 10px 18px; font-size: 13px;
+  }
+  .err-badge .err-count {
+    font-family: var(--sans); font-size: 22px; font-weight: 700; color: var(--red);
+  }
+  .err-badge .err-count.zero { color: var(--green); }
+  .err-badge .err-name { color: var(--muted); font-size: 11px; }
+  .err-section { margin-bottom: 28px; }
+  .err-section-title {
+    font-family: var(--sans); font-size: 12px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--red); border-bottom: 2px solid #f8d7d7;
+    padding-bottom: 6px; margin-bottom: 12px; display: flex;
+    align-items: center; gap: 10px;
+  }
+  .err-section-title .err-section-count {
+    background: var(--red); color: #fff; font-size: 11px;
+    padding: 1px 8px; border-radius: 2px;
+  }
+  .err-section-title.ok { color: var(--green); border-bottom-color: #c8f0d8; }
+  .err-section-title.ok .err-section-count { background: var(--green); }
+  .err-none { color: var(--muted); font-size: 13px; padding: 8px 0; }
+  #err-sections table { width: 100%; border-collapse: collapse; }
+  #err-sections thead th {
+    background: var(--surface2); border-bottom: 2px solid var(--border);
+    color: var(--muted); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 7px 10px; text-align: left;
+    white-space: nowrap;
+  }
+  #err-sections tbody tr { border-bottom: 1px solid var(--border); }
+  #err-sections tbody tr:hover { background: var(--surface2); }
+  #err-sections td { padding: 7px 10px; font-size: 13px; }
+  .err-row-highlight { background: #fff5f5 !important; }
+  .err-delta-neg { color: var(--red); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Analizador CLS · ASFA Digital Vía</h1>
+  <span>ET 03.365.003.7</span>
+  <span>Versión 0.1 - Marzo 2026</span>
+</header>
+
+<!-- PROGRESS OVERLAY -->
+<div id="progress-overlay">
+  <div class="progress-box">
+    <div class="progress-title" id="progress-title">Cargando fichero…</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <div class="progress-label" id="progress-label">Leyendo datos…</div>
+  </div>
+</div>
+
+<!-- DROP ZONE -->
+<div id="dropzone">
+  <input type="file" accept=".cls,.CLS" id="fileInput">
+  <div class="icon">📂</div>
+  <h2>Cargar fichero CLS</h2>
+  <p>Arrastra aquí el fichero o haz clic para seleccionarlo</p>
+  <div class="ext">.CLS — Registro cronológico ASFA Digital</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="fileinfo">
+    <div class="fi-item">
+      <span class="fi-label">Fichero</span>
+      <span class="fi-val" id="fi-name">—</span>
+    </div>
+    <div class="fi-item">
+      <span class="fi-label">Tamaño</span>
+      <span class="fi-val" id="fi-size">—</span>
+    </div>
+    <div class="fi-item">
+      <span class="fi-label">Paquetes declarados</span>
+      <span class="fi-val" id="fi-pkts">—</span>
+    </div>
+    <div class="fi-item">
+      <span class="fi-label">Integridad CRC</span>
+      <span class="fi-val" id="fi-crc">—</span>
+    </div>
+    <div class="fi-item">
+      <span class="fi-label">Señal</span>
+      <span class="fi-val" id="fi-signal">—</span>
+    </div>
+    <button class="btn" onclick="resetApp()" style="margin-left:auto">↺ Cargar otro fichero</button>
+  </div>
+
+  <div id="error-banner" id="error-banner"></div>
+
+  <!-- PESTAÑAS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('paquetes', this)">Paquetes</button>
+    <button class="tab-btn"        onclick="switchTab('estadisticas', this)">Estadísticas</button>
+    <button class="tab-btn"        onclick="switchTab('sensado', this)">Gráfico de Sensado</button>
+    <button class="tab-btn"        id="tab-btn-errores" onclick="switchTab('errores', this)">Errores Detectados</button>
+  </div>
+
+  <!-- PESTAÑA: PAQUETES -->
+  <div id="tab-paquetes" class="tab-panel active">
+  <div id="layout">
+    <!-- CABECERA -->
+    <div>
+      <div class="section-title">Cabecera del fichero</div>
+      <div id="panel-cabecera"></div>
+    </div>
+
+    <!-- PAQUETES -->
+    <div>
+      <div class="section-title">Paquetes de registro</div>
+      <div id="panel-paquetes">
+        <div id="filters">
+          <div class="filter-group">
+            <label>Código variable</label>
+            <div class="multiselect-wrap" id="f-code-wrap">
+              <div class="multiselect-trigger" id="f-code-trigger" onclick="toggleCodeDropdown()">
+                <span id="f-code-label">Todos</span>
+                <span class="ms-arrow">▾</span>
+              </div>
+              <div class="multiselect-dropdown" id="f-code-dropdown">
+                <div class="ms-search-wrap">
+                  <input type="text" id="f-code-search" placeholder="Buscar código o nombre…" oninput="filterCodeOptions()" autocomplete="off">
+                </div>
+                <div class="ms-actions">
+                  <button onclick="selectAllCodes(event)">Todos</button>
+                  <button onclick="selectNoneCodes(event)">Ninguno</button>
+                </div>
+                <div class="ms-list" id="f-code-list"></div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>Nombre variable</label>
+            <input type="text" id="f-name" placeholder="aspecto, eficacia…" style="width:160px">
+          </div>
+          <div class="filter-group">
+            <label>Fecha desde</label>
+            <select id="f-date-from" style="width:140px"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label>Fecha hasta</label>
+            <select id="f-date-to" style="width:140px"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label>Checksum</label>
+            <select id="f-chk" style="width:100px">
+              <option value="">Todos</option>
+              <option value="ok">OK</option>
+              <option value="err">Error</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Sensado</label>
+            <select id="f-sensado" style="width:140px">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Nº paquete desde</label>
+            <input type="number" id="f-pkt-from" placeholder="0" min="0" style="width:110px">
+          </div>
+          <div class="filter-group">
+            <label>Nº paquete hasta</label>
+            <input type="number" id="f-pkt-to" placeholder="∞" min="0" style="width:110px">
+          </div>
+          <button class="btn primary" onclick="applyFilters()">Filtrar</button>
+          <button class="btn" onclick="clearFilters()">Limpiar</button>
+          <button class="btn" onclick="exportCSV()" title="Exportar paquetes visualizados a CSV">⬇ CSV</button>
+          <span id="pkt-stats"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table id="pkt-table">
+            <thead>
+              <tr>
+                <th onclick="sortBy('num')">#<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('code')">Código<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('varname')">Variable<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('ts')">Fecha<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('ts')">Hora (UTC)<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('ms')">Milisegundos<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('val')">Valor (hex)<span class="sort-arrow">↕</span></th>
+                <th>Interpretación</th>
+                <th onclick="sortBy('sensado')">Sensado<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('eficacia')">Eficacia<span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('chk')">Checksum<span class="sort-arrow">↕</span></th>
+              </tr>
+            </thead>
+            <tbody id="pkt-body"></tbody>
+          </table>
+          <button id="tbl-load-more" onclick="loadMoreRows()">▼ Cargar más filas</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- #layout -->
+  </div><!-- #tab-paquetes -->
+
+  <!-- PESTAÑA: ESTADÍSTICAS -->
+  <div id="tab-estadisticas" class="tab-panel">
+    <div id="stats-summary">
+      <div class="stat-card">
+        <div class="stat-card-label">Total paquetes</div>
+        <div class="stat-card-val" id="st-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Tipos distintos</div>
+        <div class="stat-card-val" id="st-tipos">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Checksum OK</div>
+        <div class="stat-card-val green" id="st-chk-ok">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Checksum error</div>
+        <div class="stat-card-val red" id="st-chk-err">—</div>
+      </div>
+    </div>
+    <div class="stats-view-toggle">
+      <button class="stats-view-btn active" id="sv-btn-tabla"  onclick="switchStatsView('tabla')">Tabla</button>
+      <button class="stats-view-btn"        id="sv-btn-grafico" onclick="switchStatsView('grafico')">Gráfico de tarta</button>
+    </div>
+    <div id="stats-table-wrap">
+      <table id="stats-table">
+        <thead>
+          <tr>
+            <th onclick="sortStats('code')">Código<span class="sort-arrow">↕</span></th>
+            <th onclick="sortStats('name')">Variable<span class="sort-arrow">↕</span></th>
+            <th onclick="sortStats('count')" style="text-align:right">Nº paquetes<span class="sort-arrow">↕</span></th>
+            <th onclick="sortStats('pct')"   style="text-align:right">% total<span class="sort-arrow">↕</span></th>
+            <th onclick="sortStats('chkOk')" style="text-align:right">CHK OK<span class="sort-arrow">↕</span></th>
+            <th onclick="sortStats('chkErr')"style="text-align:right">CHK ERR<span class="sort-arrow">↕</span></th>
+            <th>Distribución</th>
+          </tr>
+        </thead>
+        <tbody id="stats-body"></tbody>
+      </table>
+    </div>
+    <div id="stats-chart-wrap">
+      <canvas id="stats-pie-canvas" width="420" height="420"></canvas>
+      <div id="stats-legend"></div>
+    </div>
+  </div><!-- #tab-estadisticas -->
+
+  <!-- PESTAÑA: ERRORES DETECTADOS -->
+  <div id="tab-errores" class="tab-panel">
+    <div id="err-summary"></div>
+    <div id="err-sections"></div>
+  </div><!-- #tab-errores -->
+
+  <!-- PESTAÑA: GRÁFICO DE SENSADO -->
+  <div id="tab-sensado" class="tab-panel">
+    <div id="sensado-legend" class="sensado-legend-bar"></div>
+
+    <!-- Controles superiores: orientación + filtro de fechas -->
+    <div style="display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+      <div class="stats-view-toggle" style="margin-bottom:0;">
+        <button class="stats-view-btn active" id="sn-btn-h" onclick="setSensadoOrient('horizontal')">↔ Horizontal</button>
+        <button class="stats-view-btn"        id="sn-btn-v" onclick="setSensadoOrient('vertical')">↕ Vertical</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="filter-group">
+          <label>Fecha desde</label>
+          <select id="sn-date-from" style="width:140px" onchange="renderSensado()"><option value="">Todas</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Fecha hasta</label>
+          <select id="sn-date-to" style="width:140px" onchange="renderSensado()"><option value="">Todas</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Excluir saltos &gt; (horas)</label>
+          <input type="number" id="sn-max-gap" value="4" min="1" max="999" step="1"
+                 style="width:90px" onchange="renderSensado()" title="Intervalos entre aspectos superiores a este valor se excluyen del cálculo de tiempos">
+        </div>
+      </div>
+    </div>
+
+    <div id="sensado-empty" class="sensado-empty" style="display:none">
+      No se han encontrado paquetes de aspecto (FE00) en el registro.
+    </div>
+    <div id="sensado-scroll-wrap" class="sensado-scroll-wrap">
+      <canvas id="sensado-canvas"></canvas>
+    </div>
+    <div id="sensado-tooltip" class="sensado-tooltip"></div>
+
+    <!-- Tabla de tiempos por aspecto -->
+    <div id="sensado-times-wrap" style="margin-top:28px;display:none;">
+      <div class="section-title">Tiempo activo por aspecto</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+        Se excluyen los intervalos con salto temporal hacia atrás, los saltos hacia adelante superiores al umbral configurado y los períodos entre un apagado (FF04) y el siguiente encendido (FF03) del equipo.
+      </p>
+      <table id="sensado-times-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr>
+            <th style="background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 12px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Aspecto</th>
+            <th style="background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 12px;text-align:right;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Tiempo total</th>
+            <th style="background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 12px;text-align:right;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">% sobre tiempo total</th>
+            <th style="background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 12px;text-align:right;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nº activaciones</th>
+          </tr>
+        </thead>
+        <tbody id="sensado-times-body"></tbody>
+      </table>
+    </div>
+  </div><!-- #tab-sensado -->
+
+</div><!-- #app -->
+
+<script>
+// ─── VARIABLE DICTIONARY ──────────────────────────────────────────────────────
+const VARIABLES = {
+  'FF02': 'Cambio fecha/hora',
+  'FF03': 'Encendido (power-on)',
+  'FF04': 'Apagado (power-off)',
+  'FF06': 'Código de fallo del sistema',
+  'FE00': 'Aspecto enviado a balizas',
+  'FE01': 'Incongruencia detección de focos',
+  'FE02': 'ID Sistema',
+  'FE03': 'ID EIC/baliza 1',
+  'FE04': 'Fabricante baliza 1 / Fondo',
+  'FE05': 'ID EIC/baliza 2',
+  'FE06': 'Fabricante baliza 2 / Fondo',
+  'FE07': 'ID EIC/baliza 3',
+  'FE08': 'Fabricante baliza 3 / Fondo',
+  'FE09': 'ID EIC/baliza 4',
+  'FE0A': 'Fabricante baliza 4 / Fondo',
+  'FE20': 'Tensión alterna de entrada',
+  'FE21': 'Tensión alimentación EICs',
+  'FE22': 'Temperatura UC',
+  'FE30': 'Temperatura Baliza 1',
+  'FE31': 'Temperatura Baliza 2',
+  'FE32': 'Temperatura Baliza 3',
+  'FE33': 'Temperatura Baliza 4',
+  'FE34': 'Datos resonancia Baliza 1',
+  'FE35': 'Datos resonancia Baliza 2',
+  'FE36': 'Datos resonancia Baliza 3',
+  'FE37': 'Datos resonancia Baliza 4',
+  'FE40': 'Detección de verde',
+  'FE41': 'Valor detección de verde',
+  'FE42': 'Detección de amarillo',
+  'FE43': 'Valor detección de amarillo',
+  'FE44': 'Detección de rojo',
+  'FE45': 'Valor detección de rojo',
+  'FE46': 'Detección de pantalla',
+  'FE47': 'Valor detección de pantalla',
+  'FE48': 'Detección PaN Protegido',
+  'FE49': 'Valor detección PaN Protegido',
+  'FE4A': 'Detección PaN No protegido',
+  'FE4B': 'Valor detección PaN No protegido',
+  'FE50': 'Conexión equipo comprobador balizas',
+  'FE60': 'Paso de tren por baliza 1',
+  'FE61': 'Paso de tren por baliza 2',
+  'FE62': 'Paso de tren por baliza 3',
+  'FE63': 'Paso de tren por baliza 4',
+  'FE70': 'Baliza 1 tapada',
+  'FE71': 'Baliza 2 tapada',
+  'FE72': 'Baliza 3 tapada',
+  'FE73': 'Baliza 4 tapada',
+  'FE80': 'Fallo configuración interna del sistema',
+  'FE81': 'Fallo comunicación EIC/baliza 1',
+  'FE82': 'Fallo comunicación EIC/baliza 2',
+  'FE83': 'Fallo comunicación EIC/baliza 3',
+  'FE84': 'Fallo comunicación EIC/baliza 4',
+  'FE85': 'Fallo permanente comunicación baliza 1',
+  'FE86': 'Fallo permanente comunicación baliza 2',
+  'FE87': 'Fallo permanente comunicación baliza 3',
+  'FE88': 'Fallo permanente comunicación baliza 4',
+  'FE8E': 'Error coincidencia versiones HW+SW balizas',
+  'FE8F': 'Fallo módulo de sensores',
+  'FE90': 'Fallo detector 1 amarillo',
+  'FE91': 'Fallo detector 2 amarillo',
+  'FE92': 'Fallo detector 1 verde',
+  'FE93': 'Fallo detector 2 verde',
+  'FE94': 'Fallo detector 1 rojo',
+  'FE95': 'Fallo detector 2 rojo',
+  'FE96': 'Fallo detector 1 pantalla',
+  'FE97': 'Fallo detector 2 pantalla',
+  'FE98': 'Fallo detector PaN NP',
+  'FE99': 'Fallo detector PaN Protegido',
+  'FEA0': 'Fallo rango detector 1 amarillo',
+  'FEA1': 'Fallo rango detector 2 amarillo',
+  'FEA2': 'Fallo rango detector 1 verde',
+  'FEA3': 'Fallo rango detector 2 verde',
+  'FEA4': 'Fallo rango detector 1 rojo',
+  'FEA5': 'Fallo rango detector 2 rojo',
+  'FEA6': 'Fallo rango detector 1 pantalla',
+  'FEA7': 'Fallo rango detector 2 pantalla',
+  'FEA8': 'Fallo rango detector PaN NP',
+  'FEA9': 'Fallo rango detector PaN Protegido',
+  'FEAA': 'Fallo FA alimentación EIC/balizas',
+  'FEAB': 'Fallo enlace serie con enclavamiento',
+  'FEB0': 'Fallo activación aspecto EIC/baliza 1',
+  'FEB1': 'Fallo activación aspecto EIC/baliza 2',
+  'FEB2': 'Fallo activación aspecto EIC/baliza 3',
+  'FEB3': 'Fallo activación aspecto EIC/baliza 4',
+  'FEC0': 'Eficacia de UC',
+  'FEC1': 'Eficacia EIC/baliza 1',
+  'FEC2': 'Eficacia EIC/baliza 2',
+  'FEC3': 'Eficacia EIC/baliza 3',
+  'FEC4': 'Eficacia EIC/baliza 4',
+  'FEC5': 'Modo funcionamiento UC',
+  'FEC6': 'Parámetros configuración UC',
+  'FEC7': 'Estado test UC',
+  'FEC8': 'Modo funcionamiento EIC1',
+  'FEC9': 'Tecnología baliza 1',
+  'FECA': 'Tipo EIC/baliza 1',
+  'FECB': 'Estado test EIC1',
+  'FECC': 'Modo funcionamiento EIC2',
+  'FECD': 'Tecnología baliza 2',
+  'FECE': 'Tipo EIC/baliza 2',
+  'FECF': 'Estado test EIC2',
+  'FED0': 'Modo funcionamiento EIC3',
+  'FED1': 'Tecnología baliza 3',
+  'FED2': 'Tipo EIC/baliza 3',
+  'FED3': 'Estado test EIC3',
+  'FED4': 'Modo funcionamiento EIC4',
+  'FED5': 'Tecnología baliza 4',
+  'FED6': 'Tipo EIC/baliza 4',
+  'FED7': 'Estado test EIC4',
+};
+
+const TIPO_SENAL = {1:'Avanzada sin verde ni rojo',2:'Avanzada sin rojo',3:'Entrada sin verde amarillo',4:'Entrada corta con amarillo a destellos',5:'Baja de salida sin verde amarillo',6:'Alta de salida sin verde amarillo',7:'Baja de salida con amarillo a destellos',8:'Baja de salida con verde amarillo',9:'Alta de salida con verde amarillo',10:'Entrada con verde amarillo',11:'Avanzada con foco rojo',12:'De trayecto con verde destellante',13:'De bloqueo'};
+
+// ─── INTERPRETACIÓN DE VALORES SEGÚN ET 03.365.003.7 ─────────────────────────
+function interpretValue(code, val) {
+  const b = n => (val >> n) & 1;
+  const bits = n => (val & ((1 << n) - 1));
+
+  switch (code) {
+
+    // FF02 – Cambio fecha/hora: el valor es la fecha/hora ANTERIOR al cambio (Unix)
+    case 'FF02': {
+      if (!val) return '(ts anterior = 0)';
+      const d = new Date(val * 1000);
+      return 'Anterior: ' + d.toISOString().replace('T',' ').slice(0,19) + ' UTC';
+    }
+
+    // FF03 – Encendido
+    case 'FF03': return val ? 'Power-ON' : 'Power-ON (valor 0)';
+
+    // FF04 – Apagado
+    case 'FF04': return val ? 'Power-OFF' : 'Power-OFF (valor 0)';
+
+    // FF06 – Código de fallo del sistema (BCD 16 bits)
+    case 'FF06': {
+      const activacion = b(0) ? 'ACTIVACIÓN' : 'Desactivación';
+      const codigo = (val >> 1) & 0x7FF;      // bits 1..11
+      const fabrico = (val >> 12) & 0xF;      // bits 12..15 (fabricante)
+      return `${activacion} | Código fallo: ${codigo} | Fab: ${fabrico}`;
+    }
+
+    // FE00 – Aspecto enviado a balizas (DEC 4 bits)
+    case 'FE00': {
+      const asp = {0:'L7/L8 (broadcast prev→L7, pie→L8)',1:'L1',2:'L2',3:'L3',4:'L4',5:'L5',6:'L6',7:'L7/L8',8:'L8/L7',9:'L9',10:'L10',11:'L11',15:'Fondo Configurado' + fondoDesc()};
+      const v4 = val & 0xF;
+      return asp[v4] ?? (v4 >= 12 && v4 <= 14 ? 'Reserva' : `Desconocido (${v4})`);
+    }
+
+    // FE01 – Incongruencia detección de focos (HEX 16 bits)
+    case 'FE01': {
+      const nombres = ['Verde','Verde destellante','Amarillo','Amarillo destellante','Rojo','Reserva','Pantalla','PaN No protegido','PaN Protegido'];
+      const activos = nombres.filter((_,i) => b(i));
+      return activos.length ? activos.join(' + ') : 'Sin incongruencia';
+    }
+
+    // FE02 – ID Sistema (DEC 12 bits)
+    case 'FE02': {
+      const id12 = val & 0xFFF;
+      const eics = (id12 >> 8) & 0xF;
+      const num8 = id12 & 0xFF;
+      return `ID=${id12} | EICs presentes (4 MSB)=${eics} | Num (8 LSB)=${num8}`;
+    }
+
+    // FE03,FE05,FE07,FE09 – ID EIC/baliza (DEC 16 bits)
+    case 'FE03': case 'FE05': case 'FE07': case 'FE09':
+      return `ID baliza: ${val & 0xFFFF}`;
+
+    // FE04,FE06,FE08,FE0A – Fabricante / Fondo (DEC 4+4 bits)
+    case 'FE04': case 'FE06': case 'FE08': case 'FE0A': {
+      const fab   = (val >> 4) & 0xF;
+      const fondo = val & 0xF;
+      return `Fabricante: ${fab} | Fondo: ${fondo}`;
+    }
+
+    // FE20 – Tensión alterna entrada (DEC 16 bits, 0..300 V)
+    case 'FE20': return `${val & 0xFFFF} V (alterna entrada)`;
+
+    // FE21 – Tensión alimentación EICs (DEC 8 bits, 0..70 V)
+    case 'FE21': return `${val & 0xFF} V (alimentación balizas)`;
+
+    // FE22 – Temperatura UC (HEX 8 bits, -55°..200°)
+    case 'FE22': {
+      const t = val & 0xFF;
+      // Convenio habitual: 0x00=-55°, 0xFF=200° → T = t*255/255*(200+55)-55
+      return `0x${toHex(t,2)} (raw) ≈ ${Math.round(t * 255/255 * 255 - 55)}° (escala -55..200°)`;
+    }
+
+    // FE30..FE33 – Temperatura balizas (igual que UC)
+    case 'FE30': case 'FE31': case 'FE32': case 'FE33': {
+      const t = val & 0xFF;
+      return `0x${toHex(t,2)} (raw) ≈ ${Math.round(t - 55)}° (escala -55..200°)`;
+    }
+
+    // FE34..FE37 – Datos resonancia (HEX 16+16 bits)
+    case 'FE34': case 'FE35': case 'FE36': case 'FE37': {
+      const duracion = (val >> 16) & 0xFFFF;
+      const resonancia = val & 0xFFFF;
+      return `Duración: ${duracion} ms | Valor resonancia: 0x${toHex(resonancia,4)}`;
+    }
+
+    // FE40 – Detección de verde (BIN 2 bits)
+    case 'FE40': {
+      const v2 = val & 0x3;
+      return v2 === 0 ? 'No detección' : v2 === 1 ? 'Destellante' : v2 === 3 ? 'Detección' : 'Reserva';
+    }
+
+    // FE42 – Detección de amarillo (BIN 2 bits)
+    case 'FE42': {
+      const v2 = val & 0x3;
+      return v2 === 0 ? 'No detección' : v2 === 1 ? 'Destellante' : v2 === 3 ? 'Detección' : 'Reserva';
+    }
+
+    // FE41,FE43,FE45,FE47,FE49,FE4B – Valores analógicos de detección (HEX 8 bits)
+    case 'FE41': return `Verde: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+    case 'FE43': return `Amarillo: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+    case 'FE45': return `Rojo: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+    case 'FE47': return `Pantalla: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+    case 'FE49': return `PaN Protegido: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+    case 'FE4B': return `PaN No protegido: 0x${toHex(val&0xFF,2)} (valor medio sensor)`;
+
+    // FE44 – Detección rojo (BIN 1 bit)
+    case 'FE44': return b(0) ? 'Detección' : 'No detección';
+
+    // FE46 – Detección pantalla (BIN 1 bit)
+    case 'FE46': return b(0) ? 'Detección' : 'No detección';
+
+    // FE48 – Detección PaN Protegido (BIN 1 bit)
+    case 'FE48': return b(0) ? 'Detección' : 'No detección';
+
+    // FE4A – Detección PaN No protegido (BIN 1 bit)
+    case 'FE4A': return b(0) ? 'Detección' : 'No detección';
+
+    // FE50 – Conexión equipo comprobador balizas (BIN 1 bit)
+    case 'FE50': return b(0) ? 'Equipo conectado a línea serie balizas' : 'No conectado';
+
+    // FE60..FE63 – Paso de tren por baliza N (BIN 1 bit)
+    case 'FE60': return b(0) ? 'Captador encima de baliza 1' : 'Sin captador encima de baliza 1';
+    case 'FE61': return b(0) ? 'Captador encima de baliza 2' : 'Sin captador encima de baliza 2';
+    case 'FE62': return b(0) ? 'Captador encima de baliza 3' : 'Sin captador encima de baliza 3';
+    case 'FE63': return b(0) ? 'Captador encima de baliza 4' : 'Sin captador encima de baliza 4';
+
+    // FE70..FE73 – Baliza tapada (BIN 1 bit)
+    case 'FE70': return b(0) ? 'Baliza 1 TAPADA' : 'Baliza 1 no tapada';
+    case 'FE71': return b(0) ? 'Baliza 2 TAPADA' : 'Baliza 2 no tapada';
+    case 'FE72': return b(0) ? 'Baliza 3 TAPADA' : 'Baliza 3 no tapada';
+    case 'FE73': return b(0) ? 'Baliza 4 TAPADA' : 'Baliza 4 no tapada';
+
+    // FE80 – Fallo configuración interna
+    case 'FE80': return b(0) ? 'CON FALLO' : 'Sin fallo';
+
+    // FE81..FE84 – Fallo comunicación EIC/baliza (inmediato)
+    case 'FE81': return b(0) ? 'FALLO comunicación baliza 1' : 'Sin fallo baliza 1';
+    case 'FE82': return b(0) ? 'FALLO comunicación baliza 2' : 'Sin fallo baliza 2';
+    case 'FE83': return b(0) ? 'FALLO comunicación baliza 3' : 'Sin fallo baliza 3';
+    case 'FE84': return b(0) ? 'FALLO comunicación baliza 4' : 'Sin fallo baliza 4';
+
+    // FE85..FE88 – Fallo permanente comunicación (3 fallos consecutivos)
+    case 'FE85': return b(0) ? 'FALLO PERMANENTE baliza 1' : 'Sin fallo permanente baliza 1';
+    case 'FE86': return b(0) ? 'FALLO PERMANENTE baliza 2' : 'Sin fallo permanente baliza 2';
+    case 'FE87': return b(0) ? 'FALLO PERMANENTE baliza 3' : 'Sin fallo permanente baliza 3';
+    case 'FE88': return b(0) ? 'FALLO PERMANENTE baliza 4' : 'Sin fallo permanente baliza 4';
+
+    // FE8E – Error coincidencia versiones HW+SW balizas
+    case 'FE8E': return b(0) ? 'Balizas con DISTINTO HW+SW' : 'Todas las balizas con mismo HW+SW';
+
+    // FE8F..FE99 – Fallos detectores (BIN 1 bit) – genérico ya cubierto por nombre
+    case 'FE8F': case 'FE90': case 'FE91': case 'FE92': case 'FE93':
+    case 'FE94': case 'FE95': case 'FE96': case 'FE97': case 'FE98': case 'FE99':
+      return b(0) ? 'CON FALLO' : 'Sin fallo';
+
+    // FEA0..FEAB – Fallos de rango / alimentación / enlace (BIN 1 bit)
+    case 'FEA0': case 'FEA1': case 'FEA2': case 'FEA3': case 'FEA4': case 'FEA5':
+    case 'FEA6': case 'FEA7': case 'FEA8': case 'FEA9': case 'FEAA': case 'FEAB':
+      return b(0) ? 'CON FALLO' : 'Sin fallo';
+
+    // FEB0..FEB3 – Fallo activación aspecto en EIC/baliza (BIN 1 bit)
+    case 'FEB0': return b(0) ? 'FALLO activación aspecto baliza 1' : 'Sin fallo baliza 1';
+    case 'FEB1': return b(0) ? 'FALLO activación aspecto baliza 2' : 'Sin fallo baliza 2';
+    case 'FEB2': return b(0) ? 'FALLO activación aspecto baliza 3' : 'Sin fallo baliza 3';
+    case 'FEB3': return b(0) ? 'FALLO activación aspecto baliza 4' : 'Sin fallo baliza 4';
+
+    // FEC0 – Eficacia UC (BIN 8 bits)
+    case 'FEC0': return (val & 0xFF) ? 'Con Eficacia' : 'Sin Eficacia';
+
+    // FEC1..FEC4 – Eficacia EIC/baliza (BIN 8 bits: bits 7-5 = baliza, bits 4-0 = EIC)
+    case 'FEC1': case 'FEC2': case 'FEC3': case 'FEC4': {
+      const v8 = val & 0xFF;
+      const balBits = (v8 >> 5) & 0x7;
+      const eicBits = v8 & 0x1F;
+      const balDesc = balBits === 0b000 ? 'Apagado' :
+                      balBits === 0b001 ? 'Sin Eficacia (Rojo)' :
+                      balBits === 0b110 ? 'Recuperando error/fallo (Amarillo)' :
+                      balBits === 0b111 ? 'Baliza Eficaz (Verde)' : `Nivel ${balBits} (Rojo)`;
+      const eicDesc = eicBits <= 0x0A ? 'Sin Eficacia (Rojo)' :
+                      eicBits <= 0x14 ? 'Nivel eficacia (Amarillo)' : 'Nivel eficacia (Verde)';
+      return `BAL: ${balDesc} | EIC: ${eicDesc}`;
+    }
+
+    // FEC5 – Modo funcionamiento UC (BIN 1 bit)
+    case 'FEC5': return b(0) ? 'Mantenimiento' : 'Operación';
+
+    // FEC6 – Parámetros configuración UC (BIN 16 bits)
+    case 'FEC6': {
+      const cfg = [
+        b(0)  ? 'B (nivel alto)' : 'A (nivel bajo)',
+        b(1)  ? 'P/S (Primario-Secundario)' : 'P/P (Primario-Primario)',
+        b(2)  ? 'Fase II' : 'Fase I',
+        b(3)  ? 'Oscilación lenta' : 'Oscilación rápida',
+        b(4)  ? 'Det. V' : null,
+        b(5)  ? 'Det. V*' : null,
+        b(6)  ? 'Det. A' : null,
+        b(7)  ? 'Det. A*' : null,
+        b(8)  ? 'Det. V/A' : null,
+        b(9)  ? 'Det. A/P' : null,
+        b(10) ? 'Det. R' : null,
+      ].filter(Boolean);
+      return cfg.join(' | ');
+    }
+
+    // FEC7 – Estado test UC
+    case 'FEC7': return b(0) ? 'Test ACTIVO' : 'Test inactivo';
+
+    // FEC8,FECC,FED0,FED4 – Modo funcionamiento EICn
+    case 'FEC8': case 'FECC': case 'FED0': case 'FED4':
+      return b(0) ? 'Mantenimiento' : 'Operación';
+
+    // FEC9,FECD,FED1,FED5 – Tecnología baliza
+    case 'FEC9': case 'FECD': case 'FED1': case 'FED5':
+      return b(0) ? 'Digital' : 'Analógica';
+
+    // FECA,FECE,FED2,FED6 – Tipo EIC/baliza
+    case 'FECA': case 'FECE': case 'FED2': case 'FED6':
+      return b(0) ? 'Previa' : 'De señal';
+
+    // FECB,FECF,FED3,FED7 – Estado test EICn
+    case 'FECB': case 'FECF': case 'FED3': case 'FED7':
+      return b(0) ? 'Test ACTIVO' : 'Test inactivo';
+
+    default:
+      return `${val} (0x${toHex(val,8)})`;
+  }
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let allPackets = [];
+let filteredPackets = [];
+let sortCol = 'num';
+let sortAsc = true;
+let numPktsDeclarado = 0;
+let balizasFondos = [null, null, null, null]; // fondo configurado de balizas 1-4
+
+// ─── FILE INPUT ───────────────────────────────────────────────────────────────
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+
+function resetApp() {
+  // ── Estado global ──
+  allPackets = []; filteredPackets = [];
+  numPktsDeclarado = 0;
+  balizasFondos = [null, null, null, null];
+  renderedRows = 0;
+  statsData = [];
+  statsView = 'tabla';
+  sensadoOrient = 'horizontal';
+
+  // ── Tabla paquetes ──
+  document.getElementById('pkt-body').innerHTML = '';
+  document.getElementById('pkt-stats').innerHTML = '';
+  document.getElementById('tbl-load-more').style.display = 'none';
+  document.querySelector('.tbl-wrap').scrollTop = 0;
+
+  // ── Cabecera ──
+  document.getElementById('panel-cabecera').innerHTML = '';
+
+  // ── Fileinfo ──
+  document.getElementById('fi-name').textContent    = '—';
+  document.getElementById('fi-size').textContent    = '—';
+  document.getElementById('fi-pkts').textContent    = '—';
+  document.getElementById('fi-crc').textContent     = '—';
+  document.getElementById('fi-crc').className       = 'fi-val';
+  document.getElementById('fi-signal').textContent  = '—';
+
+  // ── Estadísticas ──
+  document.getElementById('stats-body').innerHTML   = '';
+  document.getElementById('st-total').textContent   = '—';
+  document.getElementById('st-tipos').textContent   = '—';
+  document.getElementById('st-chk-ok').textContent  = '—';
+  document.getElementById('st-chk-err').textContent = '—';
+  document.getElementById('stats-chart-wrap').classList.remove('visible');
+  document.getElementById('stats-table-wrap').style.display = '';
+  document.getElementById('sv-btn-tabla').classList.add('active');
+  document.getElementById('sv-btn-grafico').classList.remove('active');
+  const pieCanvas = document.getElementById('stats-pie-canvas');
+  pieCanvas.getContext('2d').clearRect(0, 0, pieCanvas.width, pieCanvas.height);
+  document.getElementById('stats-legend').innerHTML = '';
+
+  // ── Gráfico de sensado ──
+  document.getElementById('sensado-legend').innerHTML  = '';
+  document.getElementById('sensado-empty').style.display = 'none';
+  document.getElementById('sensado-scroll-wrap').style.display = 'none';
+  document.getElementById('sensado-times-wrap').style.display  = 'none';
+  document.getElementById('sensado-times-body').innerHTML = '';
+  document.getElementById('sn-date-from').innerHTML = '<option value="">Todas</option>';
+  document.getElementById('sn-date-to').innerHTML   = '<option value="">Todas</option>';
+  document.getElementById('sn-max-gap').value        = '4';
+  document.getElementById('sn-btn-h').classList.add('active');
+  document.getElementById('sn-btn-v').classList.remove('active');
+  const snCanvas = document.getElementById('sensado-canvas');
+  snCanvas.getContext('2d').clearRect(0, 0, snCanvas.width, snCanvas.height);
+
+  // ── Errores ──
+  document.getElementById('err-summary').innerHTML  = '';
+  document.getElementById('err-sections').innerHTML = '';
+  const tabBtnErr = document.getElementById('tab-btn-errores');
+  tabBtnErr.textContent = 'Errores Detectados';
+  tabBtnErr.style.color = '';
+
+  // ── Filtros ──
+  document.getElementById('f-name').value      = '';
+  document.getElementById('f-date-from').value = '';
+  document.getElementById('f-date-to').value   = '';
+  document.getElementById('f-chk').value       = '';
+  document.getElementById('f-sensado').value   = '';
+  document.getElementById('f-pkt-from').value  = '';
+  document.getElementById('f-pkt-to').value    = '';
+  // Resetear opciones del select sensado
+  document.getElementById('f-sensado').innerHTML = '<option value="">Todos</option>';
+  selectedCodes = new Set(); allCodes = [];
+  document.getElementById('f-code-label').textContent = 'Todos';
+  document.getElementById('f-code-list').innerHTML    = '';
+
+  // ── Volver a la pestaña Paquetes ──
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-paquetes').classList.add('active');
+  document.querySelector('.tab-btn').classList.add('active');
+
+  // ── Mostrar dropzone ──
+  document.getElementById('app').classList.remove('visible');
+  dropzone.style.display = '';
+  fileInput.value = '';
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+function showProgress(title, label, pct) {
+  const ov = document.getElementById('progress-overlay');
+  document.getElementById('progress-title').textContent = title;
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  ov.classList.add('visible');
+}
+function hideProgress() {
+  document.getElementById('progress-overlay').classList.remove('visible');
+}
+
+function processFile(file) {
+  showProgress('Leyendo fichero…', file.name, 10);
+  const reader = new FileReader();
+  reader.onprogress = (e) => {
+    if (e.lengthComputable) {
+      const pct = Math.round(e.loaded / e.total * 40) + 10;
+      showProgress('Leyendo fichero…', `${(e.loaded/1024/1024).toFixed(1)} MB / ${(e.total/1024/1024).toFixed(1)} MB`, pct);
+    }
+  };
+  reader.onload = e => {
+    showProgress('Analizando paquetes…', 'Parseando cabecera y paquetes…', 55);
+    // Diferir el parseo un tick para que el navegador repinte el overlay
+    setTimeout(() => {
+      try {
+        const buf = new Uint8Array(e.target.result);
+        parseCLS(buf, file);
+      } catch(err) {
+        hideProgress();
+        showError('Error al parsear el fichero: ' + err.message);
+      }
+    }, 30);
+  };
+  reader.onerror = () => { hideProgress(); showError('Error al leer el fichero.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function readU8(buf, off)  { return buf[off]; }
+function readU16LE(buf, off) { return buf[off] | (buf[off+1] << 8); }
+function readU32LE(buf, off) { return (buf[off] | (buf[off+1]<<8) | (buf[off+2]<<16) | (buf[off+3]<<24)) >>> 0; }
+
+function formatUnix(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  return d.toLocaleString('es-ES', {timeZone:'UTC'});
+}
+
+function toHex(v, digits=4) { return v.toString(16).toUpperCase().padStart(digits,'0'); }
+
+function fondoDesc() {
+  // Construye "(B1=LX, B3=LY)" incluyendo solo balizas presentes (fondo !== null)
+  const parts = balizasFondos
+    .map((f, i) => f !== null ? `B${i+1}=L${f}` : null)
+    .filter(Boolean);
+  return parts.length ? ' (' + parts.join(', ') + ')' : '';
+}
+
+function crcCCITT(buf, from, to) {
+  // Polynomial X^16+X^12+X^5+1
+  let crc = 0xFFFF;
+  for (let i = from; i < to; i++) {
+    crc ^= (buf[i] << 8);
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc;
+}
+
+function calcChecksumHeader(buf) {
+  // Suma de bytes [2..69] del fichero, mod 2^16
+  // Se excluyen: CRC-CCITT (bytes 0-1), Número de paquetes (bytes 66-69) y Checksum (bytes 70-71)
+  // Según ET: Σ registro[i] para i=2..69, mod 2^16
+  let s = 0;
+  for (let i = 2; i <= 69 && i < buf.length; i++) {
+    s = (s + buf[i]) & 0xFFFF;
+  }
+  return s;
+}
+
+function calcChecksumPacket(buf, off, pktSz) {
+  // Suma de bytes [off+2 .. off+pktSz-3] del paquete, mod 2^16
+  // Se excluyen: Marca (bytes 0-1) y Checksum (2 últimos bytes del paquete)
+  let s = 0;
+  for (let i = off + 2; i <= off + pktSz - 3 && i < buf.length; i++) {
+    s = (s + buf[i]) & 0xFFFF;
+  }
+  return s;
+}
+
+// ─── PARSER ───────────────────────────────────────────────────────────────────
+const HDR_SIZE = 72; // Tamaño fijo de cabecera según ET: 72 bytes
+
+function parseCLS(buf, file) {
+
+  // ── VALIDACIÓN DE TAMAÑO DE CABECERA ──────────────────────────────────────
+  // La cabecera son los bytes desde el inicio hasta el primer paquete (marca 0xDCBA).
+  // Su tamaño debe ser exactamente HDR_SIZE (76) bytes.
+  let firstPacketOffset = buf.length; // si no hay paquetes, toda la longitud
+  for (let i = 0; i <= buf.length - 2; i++) {
+    if (buf[i] === 0xBA && buf[i + 1] === 0xDC) { firstPacketOffset = i; break; }
+  }
+  const headerSize = firstPacketOffset;
+  const headerOk   = headerSize === HDR_SIZE;
+
+  // Tamaño de paquete: siempre 20 bytes según la ET
+  const pktSize = 20;
+
+  // ── PARSE PAQUETES ────────────────────────────────────────────────────────
+  // Si la cabecera es incorrecta buscamos la marca 0xDCBA desde el byte 0.
+  // Si es correcta empezamos tras la cabecera (offset HDR_SIZE).
+  allPackets = [];
+  let pktIdx = 0;
+
+  // Tamaño de paquete ya calculado arriba (verPktSize, pktSize)
+  let pktOffset = headerOk ? HDR_SIZE : 0;
+
+  // Estado de sensado acumulado (se actualiza con cada paquete de detección)
+  const sensState = { FE40: 0, FE42: 0, FE44: 0, FE46: 0 };
+  // Estado de eficacia acumulado (FEC0=UC, FEC1=B1, FEC2=B2, FEC3=B3, FEC4=B4)
+  const eficState = { FEC0: 0, FEC1: 0, FEC2: 0, FEC3: 0, FEC4: 0 };
+
+  while (pktOffset + pktSize <= buf.length) {
+    const mark = readU16LE(buf, pktOffset);
+    if (mark !== 0xDCBA) {
+      // Re-sincronización: buscar la siguiente marca 0xDCBA
+      let found = false;
+      for (let s = pktOffset + 1; s <= buf.length - 2; s++) {
+        if (buf[s] === 0xBA && buf[s+1] === 0xDC) { pktOffset = s; found = true; break; }
+      }
+      if (!found) break;
+      continue;
+    }
+
+    const numPkt    = readU32LE(buf, pktOffset + 2);
+    const codeRaw   = readU16LE(buf, pktOffset + 6);
+    const codeStr   = toHex(codeRaw, 4);
+    const ts        = readU32LE(buf, pktOffset + 8);
+    const ms        = readU16LE(buf, pktOffset + 12);
+    const val       = readU32LE(buf, pktOffset + 14);
+    const chkStored = readU16LE(buf, pktOffset + pktSize - 2);
+    const chkCalc   = calcChecksumPacket(buf, pktOffset, pktSize);
+    const chkOk     = (chkStored === chkCalc);
+
+    const varname   = VARIABLES[codeStr] || ('Variable ' + codeStr);
+    const valInterp = interpretValue(codeStr, val);
+
+    // Actualizar estado de sensado si el paquete es de detección
+    if (codeStr in sensState) sensState[codeStr] = val & 0xFF;
+
+    // Actualizar estado de eficacia
+    if (codeStr in eficState) eficState[codeStr] = val & 0xFF;
+
+    // Calcular columna Sensado: estado activo en el momento de este paquete
+    // FE40: verde  (bits 2→detección, bit0→destellante)
+    // FE42: amarillo (igual)
+    // FE44: rojo  (bit0)
+    // FE46: pantalla (bit0)
+    const sensado = [];
+    if ((sensState.FE40 & 0x3) !== 0) sensado.push('V');
+    if ((sensState.FE42 & 0x3) !== 0) sensado.push('A');
+    if ((sensState.FE44 & 0x1) !== 0) sensado.push('R');
+    if ((sensState.FE46 & 0x1) !== 0) sensado.push('P');
+
+    // Calcular columna Eficacia:
+    // FEC0 UC: bit0=1 → con eficacia
+    // FEC1..FEC4 EIC/Baliza: bits 5-7 = 111 → baliza eficaz; bits 0-4 >= 0x15 → EIC eficaz
+    // Se considera "con eficacia" si baliza eficaz (bits 7-5 = 111) O EIC eficaz (bits 4-0 >= 0x15)
+    const efic = [];
+    if ((eficState.FEC0 & 0x1) !== 0) efic.push('UC');
+    const eficBalizas = [
+      { key: 'FEC1', label: 'EB1' },
+      { key: 'FEC2', label: 'EB2' },
+      { key: 'FEC3', label: 'EB3' },
+      { key: 'FEC4', label: 'EB4' },
+    ];
+    eficBalizas.forEach(({ key, label }) => {
+      const v = eficState[key];
+      const balEficaz = (v >> 5) === 0b111;           // bits 7-5 = 111
+      const eicEficaz = (v & 0x1F) >= 0x15;           // bits 4-0 >= 21
+      if (balEficaz || eicEficaz) efic.push(label);
+    });
+    const eficacia = efic.length ? efic.join('+') : 'Sin Eficacia';
+
+    allPackets.push({ idx: pktIdx++, num: numPkt, code: codeStr, varname, ts, ms, val, chkOk, valInterp,
+                      tsDate: ts ? new Date(ts * 1000) : null,
+                      sensado: sensado.join('-'), eficacia });
+    pktOffset += pktSize;
+  }
+
+  filteredPackets = [...allPackets];
+
+  // ── RENDER CABECERA ───────────────────────────────────────────────────────
+  const cab = document.getElementById('panel-cabecera');
+
+  if (!headerOk) {
+    // Tamaño insuficiente: no se muestra ningún valor
+    cab.innerHTML = `
+      <div style="background:#fdf0f0;border:1px solid var(--red);color:var(--red);
+                  padding:14px 16px;font-size:13px;line-height:1.6;">
+        <strong>⚠ ERROR DE CABECERA — Tamaño incorrecto</strong><br>
+        Tamaño de cabecera encontrado: <strong>${headerSize} bytes</strong>
+        (hasta la primera marca 0xDCBA).<br>
+        Se esperan exactamente <strong>${HDR_SIZE} bytes</strong>.<br>
+        No se representan valores de cabecera.<br>
+        Los paquetes encontrados a partir de la marca 0xDCBA sí se muestran en la tabla.
+      </div>`;
+
+    document.getElementById('fi-name').textContent   = file.name;
+    document.getElementById('fi-size').textContent   = (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('fi-pkts').textContent   = '— declarados / ' + allPackets.length + ' leídos';
+    document.getElementById('fi-crc').textContent    = '⚠ Sin cabecera';
+    document.getElementById('fi-crc').className      = 'fi-val bad';
+    document.getElementById('fi-signal').textContent = '—';
+    numPktsDeclarado = 0;
+
+    dropzone.style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    populateDateSelects();
+    populateCodeSelect();
+    populateSensadoSelect();
+    setTimeout(() => {
+      renderTable();
+      updateErrorBadge();
+      hideProgress();
+    }, 30);
+    return;
+  }
+
+  // Cabecera con tamaño correcto: leer todos los campos
+  // Mapa de offsets (todos little-endian):
+  //  0: CRC-CCITT (2)
+  //  2: Versión formato (2)  → byte[2]=letra, byte[3]=tamaño paquete
+  //  4: Fecha instalación UC (4)
+  //  8: Config UC (2)
+  // 10: Config SISTEMA (2)
+  // 12: ID usuario BCD (4)
+  // 16: ID texto señal ASCII (5)
+  // 21: ID numérico señal (2)
+  // 23: Tipo señal (1)
+  // 24: Tipo focos (1)
+  // 25: Nº serie UC (2)
+  // 27: SW Control UC (4)
+  // 31: SW Config UC (4)
+  // 35: ID fabricante UC (1)
+  // 36: ID SISTEMA (2)
+  // 38: Baliza 1: HW+SW(4) + fab/fondo(1) + dist(2) = 7 bytes  → offset 38
+  // 45: Baliza 2 → offset 45
+  // 52: Baliza 3 → offset 52
+  // 59: Baliza 4 → offset 59
+  // 66: Número de paquetes (4)
+  // 70: Checksum cabecera (2)
+  // 72: inicio paquetes
+  const crc_stored = readU16LE(buf, 0);
+  const verLetter  = String.fromCharCode(buf[2]) || '?';
+  const fechaUC    = readU32LE(buf, 4);
+  const configUC   = readU16LE(buf, 8);
+  const configSis  = readU16LE(buf, 10);
+  const idTexto    = String.fromCharCode(buf[16],buf[17],buf[18],buf[19],buf[20]).replace(/\0/g,'').trim();
+  const idNum      = readU16LE(buf, 21);
+  const tipoSenal  = buf[23];
+  const tipoFocos  = buf[24];
+  const numSerieUC = readU16LE(buf, 25);
+  const verSWCtrl  = String.fromCharCode(buf[27],buf[28],buf[29],buf[30]);
+  const verSWConf  = String.fromCharCode(buf[31],buf[32],buf[33],buf[34]);
+  const idFabUC    = buf[35];
+  const idSistema  = readU16LE(buf, 36);
+  const balizas    = [];
+  for (let b = 0; b < 4; b++) {
+    const base = 38 + b * 7;  // cada baliza ocupa 7 bytes: 4(HW+SW)+1(fab/fondo)+2(dist)
+    balizas.push({
+      hw:    String.fromCharCode(buf[base],buf[base+1],buf[base+2],buf[base+3]),
+      fab:   buf[base+4] >> 4,
+      fondo: buf[base+4] & 0x0F,
+      dist:  readU16LE(buf, base + 5)
+    });
+  }
+  // Guardar fondos globalmente: null si la baliza no está presente (según configSis)
+  const balizaPresente = [
+    (configSis >> 1) & 1,  // bit1 → baliza 1
+    (configSis >> 3) & 1,  // bit3 → baliza 2
+    (configSis >> 6) & 1,  // bit6 → baliza 3
+    (configSis >> 9) & 1,  // bit9 → baliza 4
+  ];
+  balizasFondos = balizas.map((b, i) => balizaPresente[i] ? b.fondo : null);
+  // Recalcular interpretación de paquetes FE00 con valor 15 (Fondo Configurado)
+  // ahora que balizasFondos ya está disponible
+  allPackets.forEach(p => {
+    if (p.code === 'FE00' && (p.val & 0xF) === 15) {
+      p.valInterp = interpretValue('FE00', p.val);
+    }
+  });
+  const numPkts2   = readU32LE(buf, 66);
+  const chkHdr2    = readU16LE(buf, 70);
+  const crc_calc   = crcCCITT(buf, 2, buf.length);
+  const crcOk      = (crc_stored === crc_calc);
+  const chkHdrCalc = calcChecksumHeader(buf);
+  const chkHdrOk   = (chkHdr2 === chkHdrCalc);
+
+  const tipoS     = tipoSenal & 0x7F;
+  const anchoDesc = (tipoSenal & 0x80) ? 'Ancho UIC' : 'Ancho Convencional';
+  const focosDesc = tipoFocos < 128 ? 'Incandescentes' : 'LED';
+
+  function bit(v, b) { return (v >> b) & 1; }
+
+  // Aviso de checksum incorrecto (no impide mostrar datos)
+  const chkWarning = chkHdrOk ? '' : `
+    <div style="background:#fff8e1;border:1px solid #e6a817;color:#7a5200;
+                padding:10px 14px;font-size:12px;line-height:1.6;margin-bottom:12px;">
+      <strong>⚠ Checksum de cabecera incorrecto</strong><br>
+      Almacenado: <strong>0x${toHex(chkHdr2)}</strong> ·
+      Calculado: <strong>0x${toHex(chkHdrCalc)}</strong><br>
+      Los datos se muestran pero pueden no ser fiables.
+    </div>`;
+
+  cab.innerHTML = `${chkWarning}
+    <div class="cab-row"><span class="cab-key">CRC-CCITT almacenado</span><span class="cab-val">${toHex(crc_stored)}</span></div>
+    <div class="cab-row"><span class="cab-key">CRC calculado</span><span class="cab-val ${crcOk?'good':'bad'}">${toHex(crc_calc)} ${crcOk?'✓ OK':'✗ ERROR'}</span></div>
+    <div class="cab-row"><span class="cab-key">Checksum cabecera almacenado</span><span class="cab-val">${toHex(chkHdr2)}</span></div>
+    <div class="cab-row"><span class="cab-key">Checksum cabecera calculado</span><span class="cab-val ${chkHdrOk?'good':'bad'}">${toHex(chkHdrCalc)} ${chkHdrOk?'✓ OK':'✗ ERROR'}</span></div>
+    <div class="cab-row"><span class="cab-key">Versión formato registro</span><span class="cab-val ${buf[2]===0x65 && buf[3]===0x1E ? 'good' : 'bad'}">${buf[2]===0x65 && buf[3]===0x1E ? `A-30 (65h + 1Eh) ✓` : `Error — encontrado: ${toHex(buf[2],2)}h + ${toHex(buf[3],2)}h, esperado: 65h + 1Eh`}</span></div>
+    <div class="cab-row"><span class="cab-key">Fecha instalación UC</span><span class="cab-val">${formatUnix(fechaUC)}</span></div>
+    <div class="cab-row"><span class="cab-key">ID texto señal</span><span class="cab-val highlight">${idTexto || '—'}</span></div>
+    <div class="cab-row"><span class="cab-key">ID numérico señal</span><span class="cab-val">${idNum}</span></div>
+    <div class="cab-row"><span class="cab-key">Tipo señal (código)</span><span class="cab-val">${toHex(tipoSenal,2)} — ${TIPO_SENAL[tipoS]||'?'}</span></div>
+    <div class="cab-row"><span class="cab-key">Ancho de vía</span><span class="cab-val">${anchoDesc}</span></div>
+    <div class="cab-row"><span class="cab-key">Tipo de focos</span><span class="cab-val">${tipoFocos} (${focosDesc})</span></div>
+    <div class="cab-row"><span class="cab-key">N.º serie UC</span><span class="cab-val">${numSerieUC}</span></div>
+    <div class="cab-row"><span class="cab-key">SW Control UC</span><span class="cab-val">${verSWCtrl}</span></div>
+    <div class="cab-row"><span class="cab-key">SW Configuración UC</span><span class="cab-val">${verSWConf}</span></div>
+    <div class="cab-row"><span class="cab-key">Fabricante UC</span><span class="cab-val">${idFabUC}</span></div>
+    <div class="cab-row"><span class="cab-key">ID Sistema</span><span class="cab-val">${idSistema} (0x${toHex(idSistema)})</span></div>
+    <div class="cab-row"><span class="cab-key">Número de paquetes</span><span class="cab-val highlight">${numPkts2}</span></div>
+
+    <div class="cab-group">
+      <div class="cab-group-title">Configuración UC</div>
+      ${renderConfigUC(configUC)}
+    </div>
+
+    <div class="cab-group">
+      <div class="cab-group-title">Configuración Sistema</div>
+      ${renderConfigSis(configSis)}
+    </div>
+
+    <div class="cab-group">
+      <div class="cab-group-title">Balizas / EICs</div>
+      ${balizas.map((b,i)=>`
+        <div class="cab-row"><span class="cab-key">Baliza ${i+1} HW+SW</span><span class="cab-val">${b.hw}</span></div>
+        <div class="cab-row"><span class="cab-key">Baliza ${i+1} Fabricante / Fondo</span><span class="cab-val">${b.fab} / ${b.fondo}</span></div>
+        <div class="cab-row"><span class="cab-key">Baliza ${i+1} Distancia desde señal</span><span class="cab-val">${b.dist} m</span></div>
+      `).join('')}
+    </div>
+  `;
+
+  // ── FILEINFO ──
+  const pktsMismatch = numPkts2 !== allPackets.length;
+  document.getElementById('fi-name').textContent   = file.name;
+  document.getElementById('fi-size').textContent   = (file.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('fi-pkts').textContent   = `${numPkts2} declarados / ${allPackets.length} leídos` + (pktsMismatch ? ' ⚠' : ' ✓');
+  document.getElementById('fi-pkts').closest('.fi-item').querySelector('.fi-val').className = 'fi-val ' + (pktsMismatch ? 'bad' : '');
+  document.getElementById('fi-crc').textContent    = crcOk ? '✓ OK' : '✗ ERROR';
+  document.getElementById('fi-crc').className      = 'fi-val ' + (crcOk ? 'good' : 'bad');
+  document.getElementById('fi-signal').textContent = idTexto || '—';
+  numPktsDeclarado = numPkts2;
+
+  dropzone.style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  populateDateSelects();
+  populateCodeSelect();
+  populateSensadoSelect();
+  setTimeout(() => {
+    renderTable();
+    updateErrorBadge();
+    hideProgress();
+  }, 30);
+}
+
+function renderBits(val, labels) {
+  let html = '';
+  labels.forEach((l, i) => {
+    const b = (val >> i) & 1;
+    html += `<div class="cab-row"><span class="cab-key">bit${i} ${l}</span><span class="cab-val ${b?'highlight':''}">${b}</span></div>`;
+  });
+  return html;
+}
+
+function renderConfigUC(val) {
+  const b = n => (val >> n) & 1;
+  const defs = [
+    { bit: 0,  desc: 'Nivel corriente focos',  interp: b(0) ? 'Alto' : 'Bajo' },
+    { bit: 1,  desc: 'Oscilación focos',        interp: b(1) ? 'Lenta' : 'Rápida' },
+    { bit: 2,  desc: 'Sensado',                 interp: b(2) ? 'Primario-Secundario' : 'Primario-Primario' },
+    { bit: 3,  desc: 'Detección V',             interp: b(3) ? 'Sí' : 'No' },
+    { bit: 4,  desc: 'Detección V*',            interp: b(4) ? 'Sí' : 'No' },
+    { bit: 5,  desc: 'Detección A',             interp: b(5) ? 'Sí' : 'No' },
+    { bit: 6,  desc: 'Detección A*',            interp: b(6) ? 'Sí' : 'No' },
+    { bit: 7,  desc: 'Detección V/A',           interp: b(7) ? 'Sí' : 'No' },
+    { bit: 8,  desc: 'Detección A/P',           interp: b(8) ? 'Sí' : 'No' },
+    { bit: 9,  desc: 'Detección R',             interp: b(9) ? 'Sí' : 'No' },
+  ];
+  return defs.map(d =>
+    `<div class="cab-row">
+       <span class="cab-key">bit${d.bit} — ${d.desc}</span>
+       <span class="cab-val ${(val >> d.bit) & 1 ? 'highlight' : ''}">${(val >> d.bit) & 1} — ${d.interp}</span>
+     </div>`
+  ).join('');
+}
+
+function renderConfigSis(val) {
+  const b = n => (val >> n) & 1;
+  const defs = [
+    { bit: 0,  desc: 'Fase implantación',    interp: b(0)  ? 'Fase 2' : 'Fase 1' },
+    { bit: 1,  desc: 'Baliza 1',             interp: b(1)  ? 'Presente' : 'No presente' },
+    { bit: 2,  desc: 'Baliza 1 tecnología',  interp: b(2)  ? 'Digital' : 'Analógica' },
+    { bit: 3,  desc: 'Baliza 2',             interp: b(3)  ? 'Presente' : 'No presente' },
+    { bit: 4,  desc: 'Baliza 2 tecnología',  interp: b(4)  ? 'Digital' : 'Analógica' },
+    { bit: 5,  desc: 'Baliza 2 tipo',        interp: b(5)  ? 'Previa' : 'De señal' },
+    { bit: 6,  desc: 'Baliza 3',             interp: b(6)  ? 'Presente' : 'No presente' },
+    { bit: 7,  desc: 'Baliza 3 tecnología',  interp: b(7)  ? 'Digital' : 'Analógica' },
+    { bit: 8,  desc: 'Baliza 3 tipo',        interp: b(8)  ? 'Previa' : 'De señal' },
+    { bit: 9,  desc: 'Baliza 4',             interp: b(9)  ? 'Presente' : 'No presente' },
+    { bit: 10, desc: 'Baliza 4 tecnología',  interp: b(10) ? 'Digital' : 'Analógica' },
+    { bit: 11, desc: 'Baliza 4 tipo',        interp: b(11) ? 'Previa' : 'De señal' },
+    { bit: 12, desc: 'Enlace con red',       interp: b(12) ? 'Sí' : 'No' },
+    { bit: 13, desc: 'Enlace enclavamiento', interp: b(13) ? 'Sí' : 'No' },
+  ];
+  return defs.map(d =>
+    `<div class="cab-row">
+       <span class="cab-key">bit${d.bit} — ${d.desc}</span>
+       <span class="cab-val ${(val >> d.bit) & 1 ? 'highlight' : ''}">${(val >> d.bit) & 1} — ${d.interp}</span>
+     </div>`
+  ).join('');
+}
+
+// ─── TABLE RENDERING ─────────────────────────────────────────────────────────
+// ─── TABLE RENDERING (paginación virtual) ────────────────────────────────────
+const PAGE_SIZE = 500;
+let renderedRows = 0;
+
+function buildRow(p) {
+  const chkCell = p.chkOk
+    ? `<span class="chk-ok">✓</span>`
+    : `<span class="chk-err">✗ ERR</span>`;
+  const valHex  = '0x' + toHex(p.val, 8);
+  const dateStr = p.tsDate ? p.tsDate.toISOString().slice(0, 10) : '—';
+  const timeStr = p.tsDate ? p.tsDate.toISOString().slice(11, 19) : '—';
+  return `<tr class="${p.chkOk?'':'err'}">
+    <td class="td-num">${p.num}</td>
+    <td class="td-code">${p.code}</td>
+    <td class="td-varname">${p.varname}</td>
+    <td class="td-ts">${dateStr}</td>
+    <td class="td-ts">${timeStr}</td>
+    <td class="td-num">${p.ms}</td>
+    <td class="td-val">${valHex}</td>
+    <td class="td-interp">${p.valInterp}</td>
+    <td class="td-sensado">${p.sensado || ''}</td>
+    <td class="${p.eficacia === 'Sin Eficacia' ? 'td-sin-eficacia' : 'td-eficacia'}">${p.eficacia || ''}</td>
+    <td class="td-chk">${chkCell}</td>
+  </tr>`;
+}
+
+function renderTable() {
+  const tbody   = document.getElementById('pkt-body');
+  const loadBtn = document.getElementById('tbl-load-more');
+  renderedRows  = 0;
+
+  if (!filteredPackets.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">Sin paquetes que mostrar</td></tr>';
+    document.getElementById('pkt-stats').innerHTML = '<strong>0</strong> de ' + allPackets.length + ' paquetes';
+    loadBtn.style.display = 'none';
+    return;
+  }
+
+  const slice = filteredPackets.slice(0, PAGE_SIZE);
+  tbody.innerHTML = slice.map(buildRow).join('');
+  renderedRows = slice.length;
+
+  updateLoadMoreBtn(loadBtn);
+  document.getElementById('pkt-stats').innerHTML =
+    `<strong>${filteredPackets.length}</strong> de ${allPackets.length} paquetes` +
+    (filteredPackets.length > renderedRows ? ` (mostrando ${renderedRows})` : '');
+
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+}
+
+function loadMoreRows() {
+  const tbody   = document.getElementById('pkt-body');
+  const loadBtn = document.getElementById('tbl-load-more');
+  const slice   = filteredPackets.slice(renderedRows, renderedRows + PAGE_SIZE);
+  tbody.insertAdjacentHTML('beforeend', slice.map(buildRow).join(''));
+  renderedRows += slice.length;
+  updateLoadMoreBtn(loadBtn);
+  document.getElementById('pkt-stats').innerHTML =
+    `<strong>${filteredPackets.length}</strong> de ${allPackets.length} paquetes` +
+    (filteredPackets.length > renderedRows ? ` (mostrando ${renderedRows})` : '');
+}
+
+function updateLoadMoreBtn(btn) {
+  const remaining = filteredPackets.length - renderedRows;
+  if (remaining > 0) {
+    btn.style.display = 'block';
+    btn.textContent   = `▼ Cargar más filas (${remaining.toLocaleString()} restantes)`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+const sortKeys = { num:'num', code:'code', varname:'varname', ts:'ts', ms:'ms', val:'val', sensado:'sensado', eficacia:'eficacia', chk:'chkOk' };
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+  const key = sortKeys[col] || col;
+  filteredPackets.sort((a,b) => {
+    const av = a[key], bv = b[key];
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+  renderTable();
+}
+
+// ─── MULTISELECT CÓDIGO ──────────────────────────────────────────────────────
+// selectedCodes contiene SIEMPRE los códigos que deben mostrarse.
+// Cuando contiene todos los códigos disponibles es equivalente a "sin filtro".
+let selectedCodes = new Set();
+let allCodes = []; // lista de todos los códigos presentes en el registro
+
+function populateCodeSelect() {
+  const codesSet = new Set();
+  allPackets.forEach(p => codesSet.add(p.code));
+  allCodes = [...codesSet].sort();
+
+  // Inicialmente todos seleccionados
+  selectedCodes = new Set(allCodes);
+  renderCodeList();
+  updateCodeLabel();
+}
+
+function renderCodeList() {
+  const list = document.getElementById('f-code-list');
+  list.innerHTML = '';
+  allCodes.forEach(code => {
+    const name    = VARIABLES[code] || '—';
+    const checked = selectedCodes.has(code);
+    const item    = document.createElement('div');
+    item.className    = 'ms-item' + (checked ? ' checked' : '');
+    item.dataset.code = code;
+    item.innerHTML = `
+      <input type="checkbox" ${checked ? 'checked' : ''}>
+      <span class="ms-item-code">${code}</span>
+      <span class="ms-item-name">${name}</span>`;
+    item.querySelector('input').addEventListener('change', function() {
+      toggleCode(code, this.checked);
+    });
+    item.addEventListener('click', e => {
+      if (e.target.tagName !== 'INPUT') {
+        const cb = item.querySelector('input');
+        cb.checked = !cb.checked;
+        toggleCode(code, cb.checked);
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function filterCodeOptions() {
+  const q = document.getElementById('f-code-search').value.trim().toLowerCase();
+  document.querySelectorAll('#f-code-list .ms-item').forEach(item => {
+    const code = item.dataset.code;
+    const name = (VARIABLES[code] || '').toLowerCase();
+    item.style.display = (!q || code.toLowerCase().includes(q) || name.includes(q)) ? '' : 'none';
+  });
+}
+
+function toggleCode(code, checked) {
+  if (checked) selectedCodes.add(code);
+  else         selectedCodes.delete(code);
+
+  const item = document.querySelector(`#f-code-list .ms-item[data-code="${code}"]`);
+  if (item) item.classList.toggle('checked', checked);
+
+  updateCodeLabel();
+  applyFilters();
+}
+
+function selectAllCodes(e) {
+  if (e) e.stopPropagation();
+  selectedCodes = new Set(allCodes);
+  document.querySelectorAll('#f-code-list .ms-item').forEach(item => {
+    item.classList.add('checked');
+    item.querySelector('input').checked = true;
+  });
+  updateCodeLabel();
+  applyFilters();
+}
+
+function selectNoneCodes(e) {
+  if (e) e.stopPropagation();
+  selectedCodes = new Set();
+  document.querySelectorAll('#f-code-list .ms-item').forEach(item => {
+    item.classList.remove('checked');
+    item.querySelector('input').checked = false;
+  });
+  updateCodeLabel();
+  applyFilters();
+}
+
+function updateCodeLabel() {
+  const label = document.getElementById('f-code-label');
+  const n = selectedCodes.size;
+  if (n === 0)              label.textContent = 'Ninguno';
+  else if (n === allCodes.length) label.textContent = 'Todos';
+  else if (n === 1)         label.textContent = [...selectedCodes][0];
+  else                      label.textContent = `${n} códigos`;
+}
+
+function toggleCodeDropdown() {
+  const trigger  = document.getElementById('f-code-trigger');
+  const dropdown = document.getElementById('f-code-dropdown');
+  const isOpen   = dropdown.classList.contains('open');
+  dropdown.classList.toggle('open', !isOpen);
+  trigger.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    document.getElementById('f-code-search').value = '';
+    filterCodeOptions();
+    setTimeout(() => document.getElementById('f-code-search').focus(), 50);
+  }
+}
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('f-code-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('f-code-dropdown').classList.remove('open');
+    document.getElementById('f-code-trigger').classList.remove('open');
+  }
+});
+
+// ─── FILTERS ─────────────────────────────────────────────────────────────────
+
+function populateSensadoSelect() {
+  const valuesSet = new Set();
+  allPackets.forEach(p => {
+    if (p.sensado) valuesSet.add(p.sensado);
+    else           valuesSet.add('__ninguno__');
+  });
+
+  // Ordenar: primero los valores con letras (alfabético), luego "Sin sensado"
+  const values = [...valuesSet]
+    .filter(v => v !== '__ninguno__')
+    .sort();
+  const hasNinguno = valuesSet.has('__ninguno__');
+
+  const sel = document.getElementById('f-sensado');
+  sel.innerHTML = '<option value="">Todos</option>';
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if (hasNinguno) {
+    const opt = document.createElement('option');
+    opt.value = 'ninguno'; opt.textContent = 'Sin sensado';
+    sel.appendChild(opt);
+  }
+}
+
+function populateDateSelects() {
+  const datesSet = new Set();
+  allPackets.forEach(p => {
+    if (p.tsDate) datesSet.add(p.tsDate.toISOString().slice(0, 10));
+  });
+  const dates = [...datesSet].sort();
+  const selFrom = document.getElementById('f-date-from');
+  const selTo   = document.getElementById('f-date-to');
+  [selFrom, selTo].forEach(sel => {
+    sel.innerHTML = '<option value="">Todas</option>';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function applyFilters() {
+  const fName    = document.getElementById('f-name').value.trim().toLowerCase();
+  const fFrom    = document.getElementById('f-date-from').value;
+  const fTo      = document.getElementById('f-date-to').value;
+  const fChk     = document.getElementById('f-chk').value;
+  const fSensado = document.getElementById('f-sensado').value;
+  const fPktFrom = document.getElementById('f-pkt-from').value !== '' ? parseInt(document.getElementById('f-pkt-from').value) : null;
+  const fPktTo   = document.getElementById('f-pkt-to').value   !== '' ? parseInt(document.getElementById('f-pkt-to').value)   : null;
+
+  filteredPackets = allPackets.filter(p => {
+    // Filtro código
+    if (!selectedCodes.has(p.code)) return false;
+    // Filtro nombre variable
+    if (fName && !p.varname.toLowerCase().includes(fName)) return false;
+    // Filtro fechas
+    if (fFrom && p.tsDate && p.tsDate.toISOString().slice(0,10) < fFrom) return false;
+    if (fTo   && p.tsDate && p.tsDate.toISOString().slice(0,10) > fTo)   return false;
+    // Filtro checksum
+    if (fChk === 'ok'  && !p.chkOk) return false;
+    if (fChk === 'err' &&  p.chkOk) return false;
+    // Filtro sensado: comparación exacta con el valor del campo sensado
+    if (fSensado) {
+      if (fSensado === 'ninguno') {
+        if (p.sensado) return false;
+      } else {
+        if (p.sensado !== fSensado) return false;
+      }
+    }
+    // Filtro rango de paquetes (por número de paquete del fichero)
+    if (fPktFrom !== null && p.num < fPktFrom) return false;
+    if (fPktTo   !== null && p.num > fPktTo)   return false;
+    return true;
+  });
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById('f-name').value        = '';
+  document.getElementById('f-date-from').value   = '';
+  document.getElementById('f-date-to').value     = '';
+  document.getElementById('f-chk').value         = '';
+  document.getElementById('f-sensado').value     = '';
+  document.getElementById('f-pkt-from').value    = '';
+  document.getElementById('f-pkt-to').value      = '';
+  selectAllCodes();
+  filteredPackets = [...allPackets];
+  renderTable();
+  const tblWrap = document.querySelector('.tbl-wrap');
+  if (tblWrap) tblWrap.scrollTop = 0;
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// Allow pressing Enter in text filters
+document.getElementById('f-name')?.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
+['f-pkt-from', 'f-pkt-to'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
+});
+
+// ─── EXPORTAR CSV ─────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!filteredPackets.length) return;
+
+  const SEP = ';';
+  const headers = ['Num_Paquete','Codigo','Variable','Fecha','Hora_UTC','Milisegundos','Valor_Hex','Valor_Dec','Interpretacion','Sensado','Eficacia','Checksum_OK'];
+
+  const escape = v => {
+    const s = String(v);
+    return s.includes(SEP) || s.includes('"') || s.includes('\n')
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+
+  const lines = [headers.join(SEP)];
+
+  filteredPackets.forEach(p => {
+    const dateStr = p.tsDate ? p.tsDate.toISOString().slice(0, 10)  : '';
+    const timeStr = p.tsDate ? p.tsDate.toISOString().slice(11, 19) : '';
+    const valHex  = '0x' + toHex(p.val, 8);
+    lines.push([
+      p.num, p.code, escape(p.varname),
+      dateStr, timeStr, p.ms, valHex, p.val,
+      escape(p.valInterp), p.sensado || '', p.eficacia || '',
+      p.chkOk ? 'OK' : 'ERROR'
+    ].join(SEP));
+  });
+
+  const bom  = '\uFEFF'; // BOM UTF-8 para compatibilidad con Excel
+  const blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fname = (document.getElementById('fi-name').textContent || 'registro').replace(/\.[^.]+$/, '');
+  a.href     = url;
+  a.download = fname + '_paquetes.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── PESTAÑAS ─────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'estadisticas') renderStats();
+  if (name === 'errores')      renderErrors();
+  if (name === 'sensado')      renderSensado();
+}
+
+// ─── ERRORES DETECTADOS ───────────────────────────────────────────────────────
+function countJumpErrors() {
+  let count = 0;
+  let prevPkt = null;
+  allPackets.forEach(p => {
+    if (!p.ts) { prevPkt = null; return; }
+    if (prevPkt) {
+      if ((p.ts * 1000 + p.ms) < (prevPkt.ts * 1000 + prevPkt.ms)) count++;
+    }
+    prevPkt = p;
+  });
+  return count;
+}
+
+function hasNonConsecutiveNums() {
+  for (let i = 1; i < allPackets.length; i++) {
+    if (allPackets[i].num !== allPackets[i-1].num + 1) return true;
+  }
+  return false;
+}
+
+function hasPktCountMismatch() {
+  return numPktsDeclarado !== allPackets.length;
+}
+
+function updateErrorBadge() {
+  const n = countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0);
+  const tabBtn = document.getElementById('tab-btn-errores');
+  tabBtn.textContent = n > 0 ? `Errores Detectados (${n})` : 'Errores Detectados';
+  tabBtn.style.color = n > 0 ? 'var(--red)' : '';
+}
+
+function renderErrors() {
+  if (!allPackets.length) return;
+
+  // ── 1. Saltos temporales hacia atrás ──────────────────────────────────────
+  const jumpErrors = [];
+  let prevPkt = null;
+  allPackets.forEach(p => {
+    if (!p.ts) { prevPkt = null; return; }
+    if (prevPkt) {
+      const tPrev = prevPkt.ts * 1000 + prevPkt.ms;
+      const tCurr = p.ts      * 1000 + p.ms;
+      if (tCurr < tPrev) {
+        jumpErrors.push({
+          numPrev:  prevPkt.num,
+          tsPrev:   prevPkt.tsDate ? prevPkt.tsDate.toISOString().replace('T',' ').slice(0,19) : '—',
+          msPrev:   prevPkt.ms,
+          numCurr:  p.num,
+          tsCurr:   p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '—',
+          msCurr:   p.ms,
+          deltaMs:  tCurr - tPrev
+        });
+      }
+    }
+    prevPkt = p;
+  });
+
+  // ── 2. Numeración de paquetes no consecutiva ──────────────────────────────
+  const numConsecOk = !hasNonConsecutiveNums();
+
+  // ── 3. Discrepancia entre paquetes declarados y leídos ────────────────────
+  const pktCountOk  = !hasPktCountMismatch();
+
+  // ── Resumen ───────────────────────────────────────────────────────────────
+  const totalErrors = jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1);
+  document.getElementById('err-summary').innerHTML = `
+    <div class="err-summary-bar">
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${jumpErrors.length === 0 ? 'zero' : ''}">${jumpErrors.length}</div>
+          <div class="err-name">Saltos temporales hacia atrás</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${numConsecOk ? 'zero' : ''}">${numConsecOk ? 0 : 1}</div>
+          <div class="err-name">Numeración de paquetes no consecutiva</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${pktCountOk ? 'zero' : ''}">${pktCountOk ? 0 : 1}</div>
+          <div class="err-name">Discrepancia nº paquetes declarados/leídos</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Secciones ─────────────────────────────────────────────────────────────
+  let sectionsHtml = '';
+
+  // Sección 1: saltos temporales
+  const jumpTitle = jumpErrors.length > 0
+    ? `<div class="err-section-title">Saltos temporales hacia atrás <span class="err-section-count">${jumpErrors.length}</span></div>`
+    : `<div class="err-section-title ok">Saltos temporales hacia atrás <span class="err-section-count">0</span></div>`;
+
+  if (jumpErrors.length === 0) {
+    sectionsHtml += `<div class="err-section">${jumpTitle}<div class="err-none">✓ No se han detectado saltos temporales hacia atrás.</div></div>`;
+  } else {
+    const rows = jumpErrors.map(e => `
+      <tr class="err-row-highlight">
+        <td>${e.numPrev}</td>
+        <td>${e.tsPrev}</td>
+        <td>${e.msPrev}</td>
+        <td>${e.numCurr}</td>
+        <td>${e.tsCurr}</td>
+        <td>${e.msCurr}</td>
+        <td class="err-delta-neg">${e.deltaMs.toLocaleString('es-ES')} ms</td>
+      </tr>`).join('');
+    sectionsHtml += `
+      <div class="err-section">
+        ${jumpTitle}
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+          Cada fila muestra un par de paquetes consecutivos (con timestamp válido)
+          en el que el paquete posterior tiene una marca temporal menor que el anterior.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Nº paq. anterior</th>
+              <th>Timestamp anterior</th>
+              <th>ms anterior</th>
+              <th>Nº paq. posterior</th>
+              <th>Timestamp posterior</th>
+              <th>ms posterior</th>
+              <th>Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // Sección 2: numeración no consecutiva
+  const numTitle = numConsecOk
+    ? `<div class="err-section-title ok">Numeración de paquetes no consecutiva <span class="err-section-count">0</span></div>`
+    : `<div class="err-section-title">Numeración de paquetes no consecutiva <span class="err-section-count">1</span></div>`;
+
+  if (numConsecOk) {
+    sectionsHtml += `<div class="err-section">${numTitle}<div class="err-none">✓ La numeración de paquetes es consecutiva (incremento de 1 en 1).</div></div>`;
+  } else {
+    sectionsHtml += `
+      <div class="err-section">
+        ${numTitle}
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+          Los números de paquete no se incrementan de uno en uno en algún punto del registro.
+        </p>
+      </div>`;
+  }
+
+  // Sección 3: discrepancia paquetes declarados vs leídos
+  const pktTitle = pktCountOk
+    ? `<div class="err-section-title ok">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">0</span></div>`
+    : `<div class="err-section-title">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">1</span></div>`;
+
+  if (pktCountOk) {
+    sectionsHtml += `<div class="err-section">${pktTitle}<div class="err-none">✓ El número de paquetes declarado en cabecera (${numPktsDeclarado}) coincide con los leídos (${allPackets.length}).</div></div>`;
+  } else {
+    sectionsHtml += `
+      <div class="err-section">
+        ${pktTitle}
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+          La cabecera declara <strong>${numPktsDeclarado}</strong> paquetes
+          pero se han leído <strong>${allPackets.length}</strong>
+          (diferencia: <strong>${allPackets.length - numPktsDeclarado > 0 ? '+' : ''}${allPackets.length - numPktsDeclarado}</strong>).
+        </p>
+      </div>`;
+  }
+
+  document.getElementById('err-sections').innerHTML = sectionsHtml;
+
+  // Actualizar badge
+  const tabBtn = document.getElementById('tab-btn-errores');
+  tabBtn.textContent = totalErrors > 0 ? `Errores Detectados (${totalErrors})` : 'Errores Detectados';
+  tabBtn.style.color = totalErrors > 0 ? 'var(--red)' : '';
+}
+
+// ─── GRÁFICO DE SENSADO ───────────────────────────────────────────────────────
+
+// Definición de aspectos FE00 → símbolo de señal
+const ASPECTOS_SENSADO = {
+  0:  { label: 'L7/L8', draw: drawRojo },
+  1:  { label: 'L1',    draw: drawAmarillo },
+  2:  { label: 'L2',    draw: drawVerdeDestellante },
+  3:  { label: 'L3',    draw: drawVerde },
+  4:  { label: 'L4',    draw: null },
+  5:  { label: 'L5',    draw: drawAmarilloSobrecuadrado },
+  6:  { label: 'L6',    draw: drawAmarilloSobreVerde },
+  7:  { label: 'L7/L8', draw: drawRojo },
+  8:  { label: 'L8/L7', draw: drawRojo },
+  9:  { label: 'L9',    draw: null },
+  10: { label: 'L10',   draw: null },
+  11: { label: 'L11',   draw: null },
+  15: { get label() {
+    return 'Fondo' + fondoDesc();
+  }, get draw() {
+    return getFondoDraw();
+  } },
+};
+
+// ── Funciones de dibujo de cada símbolo ──────────────────────────────────────
+function drawAmarillo(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4c430';
+  ctx.fill();
+  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function drawVerde(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#2dcc70';
+  ctx.fill();
+  ctx.strokeStyle = '#1a8a4a'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function drawVerdeDestellante(ctx, cx, cy, r) {
+  // Círculo verde con símbolo de destello (rayos)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#2dcc70';
+  ctx.fill();
+  ctx.strokeStyle = '#1a8a4a'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Rayos de destello
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r * 0.45, cy + Math.sin(a) * r * 0.45);
+    ctx.lineTo(cx + Math.cos(a) * r * 0.85, cy + Math.sin(a) * r * 0.85);
+    ctx.stroke();
+  }
+}
+
+function drawFlechaVerde(ctx, cx, cy, r) {
+  // Flecha hacia arriba verde
+  ctx.fillStyle = '#2dcc70';
+  ctx.strokeStyle = '#1a8a4a'; ctx.lineWidth = 1.5;
+  const h = r * 2;
+  ctx.beginPath();
+  ctx.moveTo(cx,         cy - h * 0.55);   // punta
+  ctx.lineTo(cx + h*0.5, cy + h * 0.1);    // ala derecha
+  ctx.lineTo(cx + h*0.2, cy + h * 0.1);    // escotadura derecha
+  ctx.lineTo(cx + h*0.2, cy + h * 0.55);   // base derecha
+  ctx.lineTo(cx - h*0.2, cy + h * 0.55);   // base izquierda
+  ctx.lineTo(cx - h*0.2, cy + h * 0.1);    // escotadura izquierda
+  ctx.lineTo(cx - h*0.5, cy + h * 0.1);    // ala izquierda
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+}
+
+function drawAmarilloSobrecuadrado(ctx, cx, cy, r) {
+  const s = r * 0.62;   // tamaño reducido para que ambas figuras quepan dentro del radio
+  const gap = r * 0.05; // pequeño espacio entre círculo y cuadrado
+  // Cuadrado transparente (solo borde) centrado abajo
+  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - s, cy + gap, s * 2, s * 2);
+  // Círculo amarillo del mismo tamaño centrado arriba
+  ctx.beginPath();
+  ctx.arc(cx, cy - s - gap, s, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4c430';
+  ctx.fill();
+  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function drawAmarilloSobreVerde(ctx, cx, cy, r) {
+  // Círculo verde abajo + círculo amarillo arriba
+  ctx.beginPath();
+  ctx.arc(cx, cy + r * 0.45, r * 0.65, 0, Math.PI * 2);
+  ctx.fillStyle = '#2dcc70';
+  ctx.fill();
+  ctx.strokeStyle = '#1a8a4a'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy - r * 0.45, r * 0.65, 0, Math.PI * 2);
+  ctx.fillStyle = '#f4c430';
+  ctx.fill();
+  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.2; ctx.stroke();
+}
+
+function drawRojo(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#e84040';
+  ctx.fill();
+  ctx.strokeStyle = '#991a1a'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function drawAspaRoja(ctx, cx, cy, r) {
+  ctx.strokeStyle = '#e84040'; ctx.lineWidth = r * 0.55;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.75, cy - r * 0.75);
+  ctx.lineTo(cx + r * 0.75, cy + r * 0.75);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + r * 0.75, cy - r * 0.75);
+  ctx.lineTo(cx - r * 0.75, cy + r * 0.75);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+}
+
+function drawFondoIcon(fillColor, strokeColor, textColor) {
+  return function(ctx, cx, cy, r) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    ctx.strokeStyle = strokeColor; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${Math.round(r * 0.75)}px JetBrains Mono, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('FC', cx, cy);
+    ctx.textBaseline = 'alphabetic';
+  };
+}
+
+// Colores por fondo: clave = valor de fondo (número), valor = [fill, stroke, textColor]
+const FONDO_COLORS = {
+  1:  ['#f4c430', '#b8860b', '#333'],  // L1 → amarillo
+  7:  ['#e84040', '#991a1a', '#fff'],  // L7/L8 → rojo
+  8:  ['#e84040', '#991a1a', '#fff'],  // L8/L7 → rojo
+};
+const FONDO_DEFAULT = ['rgba(0,0,0,0)', '#888', '#555']; // transparente
+
+function getFondoDraw() {
+  // Usar el primer fondo presente como referencia para determinar el color del icono.
+  // El valor en balizasFondos es el número directo de la cabecera (sin L delante).
+  const primerFondo = balizasFondos.find(f => f !== null);
+  if (primerFondo === undefined) return drawFondo;
+  const color = FONDO_COLORS[primerFondo] ?? FONDO_DEFAULT;
+  return drawFondoIcon(color[0], color[1], color[2]);
+}
+
+function drawFondo(ctx, cx, cy, r) {
+  drawFondoIcon(FONDO_DEFAULT[0], FONDO_DEFAULT[1], FONDO_DEFAULT[2])(ctx, cx, cy, r);
+}
+
+function drawEncendido(ctx, cx, cy, r) {
+  // Flecha hacia arriba verde oscuro
+  const h = r * 1.1;
+  ctx.fillStyle = '#1a8a4a';
+  ctx.strokeStyle = '#0f5c32'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx,            cy - h * 0.50);
+  ctx.lineTo(cx + h * 0.45, cy + h * 0.05);
+  ctx.lineTo(cx + h * 0.18, cy + h * 0.05);
+  ctx.lineTo(cx + h * 0.18, cy + h * 0.50);
+  ctx.lineTo(cx - h * 0.18, cy + h * 0.50);
+  ctx.lineTo(cx - h * 0.18, cy + h * 0.05);
+  ctx.lineTo(cx - h * 0.45, cy + h * 0.05);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+}
+
+function drawApagado(ctx, cx, cy, r) {
+  // Flecha hacia abajo marrón
+  const h = r * 1.1;
+  ctx.fillStyle = '#8B4513';
+  ctx.strokeStyle = '#5a2d0c'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx,            cy + h * 0.50);
+  ctx.lineTo(cx + h * 0.45, cy - h * 0.05);
+  ctx.lineTo(cx + h * 0.18, cy - h * 0.05);
+  ctx.lineTo(cx + h * 0.18, cy - h * 0.50);
+  ctx.lineTo(cx - h * 0.18, cy - h * 0.50);
+  ctx.lineTo(cx - h * 0.18, cy - h * 0.05);
+  ctx.lineTo(cx - h * 0.45, cy - h * 0.05);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+}
+
+// ── Render principal ─────────────────────────────────────────────────────────
+let sensadoOrient = 'horizontal';
+
+function setSensadoOrient(orient) {
+  sensadoOrient = orient;
+  document.getElementById('sn-btn-h').classList.toggle('active', orient === 'horizontal');
+  document.getElementById('sn-btn-v').classList.toggle('active', orient === 'vertical');
+  renderSensado();
+}
+
+function renderSensado() {
+  // FE00 = aspectos, FF03 = encendido, FF04 = apagado
+  const allAspect = allPackets.filter(p =>
+    (p.code === 'FE00' || p.code === 'FF03' || p.code === 'FF04') && p.tsDate);
+  const emptyEl  = document.getElementById('sensado-empty');
+  const scrollEl = document.getElementById('sensado-scroll-wrap');
+  const timesWrap = document.getElementById('sensado-times-wrap');
+
+  buildSensadoLegend();
+  // Para poblar las fechas solo usamos los FE00
+  populateSensadoDates(allPackets.filter(p => p.code === 'FE00' && p.tsDate));
+
+  // Aplicar filtro de fechas
+  const fFrom = document.getElementById('sn-date-from').value;
+  const fTo   = document.getElementById('sn-date-to').value;
+  const aspectPkts = allAspect.filter(p => {
+    const d = p.tsDate.toISOString().slice(0, 10);
+    if (fFrom && d < fFrom) return false;
+    if (fTo   && d > fTo)   return false;
+    return true;
+  });
+
+  // Solo FE00 para la tabla de tiempos
+  const fe00Pkts = aspectPkts.filter(p => p.code === 'FE00');
+
+  if (!fe00Pkts.length && !aspectPkts.length) {
+    emptyEl.style.display = '';
+    scrollEl.style.display = 'none';
+    timesWrap.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  scrollEl.style.display = '';
+  timesWrap.style.display = fe00Pkts.length ? '' : 'none';
+
+  if (sensadoOrient === 'horizontal') {
+    renderSensadoH(aspectPkts);
+  } else {
+    renderSensadoV(aspectPkts);
+  }
+
+  if (fe00Pkts.length) renderSensadoTimes(fe00Pkts);
+}
+
+function populateSensadoDates(aspectPkts) {
+  const datesSet = new Set();
+  aspectPkts.forEach(p => datesSet.add(p.tsDate.toISOString().slice(0, 10)));
+  const dates = [...datesSet].sort();
+  ['sn-date-from', 'sn-date-to'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todas</option>';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      if (d === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+// ── Helpers compartidos ───────────────────────────────────────────────────────
+function buildDeltaHtml(aspectPkts, idx) {
+  const p = aspectPkts[idx];
+  if (idx === 0) return '<br>⏱ Primer aspecto del registro';
+  const prev   = aspectPkts[idx - 1];
+  const diffMs = (p.ts * 1000 + p.ms) - (prev.ts * 1000 + prev.ms);
+  if (diffMs < 0) return `<br>⏱ Desde anterior: <strong style="color:var(--red)">salto hacia atrás</strong>`;
+  const h  = Math.floor(diffMs / 3600000);
+  const m  = Math.floor((diffMs % 3600000) / 60000);
+  const s  = Math.floor((diffMs % 60000) / 1000);
+  const ms = diffMs % 1000;
+  const parts = [];
+  if (h)  parts.push(`${h}h`);
+  if (m)  parts.push(`${m}min`);
+  if (s)  parts.push(`${s}s`);
+  if (ms) parts.push(`${ms}ms`);
+  return `<br>⏱ Desde anterior: <strong>${parts.join(' ') || '0ms'}</strong>`;
+}
+
+function attachTooltip(canvas, hitAreas, aspectPkts) {
+  const tooltip = document.getElementById('sensado-tooltip');
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const hit = hitAreas.find(a =>
+      mx >= a.x1 && mx <= a.x2 && my >= a.y1 && my <= a.y2);
+    if (hit) {
+      const p  = hit.pkt;
+      const ts = p.tsDate.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      tooltip.innerHTML = `<strong>${hit.asp.label}</strong><br>${ts}<br>ms: ${p.ms}${buildDeltaHtml(aspectPkts, hit.idx)}<br>Nº paquete: ${p.num}`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+// ── Orientación HORIZONTAL ────────────────────────────────────────────────────
+function renderSensadoH(aspectPkts) {
+  const canvas  = document.getElementById('sensado-canvas');
+  const scrollEl = document.getElementById('sensado-scroll-wrap');
+  const ctx     = canvas.getContext('2d');
+
+  const PAD_L = 70, PAD_R = 30, PAD_T = 30, PAD_B = 54;
+  const SYM_R = 14, SLOT_W = 54;
+  const H = PAD_T + SYM_R * 2 + 30 + PAD_B;
+  const W = PAD_L + aspectPkts.length * SLOT_W + PAD_R;
+
+  canvas.width  = Math.max(W, scrollEl.clientWidth || 600);
+  canvas.height = H;
+  ctx.clearRect(0, 0, canvas.width, H);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, H);
+
+  const lineY = PAD_T + SYM_R + 4;
+
+  // Eje
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_L, lineY + SYM_R + 4);
+  ctx.lineTo(PAD_L + aspectPkts.length * SLOT_W, lineY + SYM_R + 4);
+  ctx.stroke();
+
+  ctx.fillStyle = '#999'; ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Aspecto', 4, lineY + SYM_R + 8);
+
+  const hitAreas = [];
+  aspectPkts.forEach((p, i) => {
+    let drawFn, aspLabel;
+    if (p.code === 'FF03') {
+      drawFn = drawEncendido; aspLabel = 'Encendido';
+    } else if (p.code === 'FF04') {
+      drawFn = drawApagado;   aspLabel = 'Apagado';
+    } else {
+      const v4  = p.val & 0xF;
+      const asp = ASPECTOS_SENSADO[v4];
+      if (!asp || !asp.draw) return;
+      drawFn = asp.draw; aspLabel = asp.label;
+    }
+    const cx  = PAD_L + i * SLOT_W + SLOT_W / 2;
+    const cy  = lineY;
+
+    ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, lineY + SYM_R + 4); ctx.lineTo(cx, H - PAD_B + 4); ctx.stroke();
+
+    ctx.save(); drawFn(ctx, cx, cy, SYM_R); ctx.restore();
+
+    const hhmm = p.tsDate.toISOString().slice(11, 19);
+    ctx.fillStyle = '#999'; ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(hhmm, cx, H - PAD_B + 18);
+
+    hitAreas.push({ x1: cx - SLOT_W/2, x2: cx + SLOT_W/2, y1: 0, y2: H,
+                    pkt: p, asp: { label: aspLabel }, idx: i });
+  });
+
+  // Cambios de fecha
+  let lastDate = '';
+  aspectPkts.forEach((p, i) => {
+    const d = p.tsDate.toISOString().slice(0, 10);
+    if (d !== lastDate) {
+      lastDate = d;
+      const cx = PAD_L + i * SLOT_W + SLOT_W / 2;
+      ctx.fillStyle = '#1a6fba'; ctx.font = 'bold 9px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(d, cx, H - PAD_B + 32);
+    }
+  });
+
+  attachTooltip(canvas, hitAreas, aspectPkts);
+}
+
+// ── Orientación VERTICAL ──────────────────────────────────────────────────────
+function renderSensadoV(aspectPkts) {
+  const canvas   = document.getElementById('sensado-canvas');
+  const scrollEl = document.getElementById('sensado-scroll-wrap');
+  const ctx      = canvas.getContext('2d');
+
+  const PAD_T = 20, PAD_B = 20, PAD_L = 130, PAD_R = 60;
+  const SYM_R = 14, SLOT_H = 54;
+  const W = PAD_L + SYM_R * 2 + 30 + PAD_R;
+  const H = PAD_T + aspectPkts.length * SLOT_H + PAD_B;
+
+  canvas.width  = W;
+  canvas.height = Math.max(H, scrollEl.clientHeight || 400);
+  ctx.clearRect(0, 0, W, canvas.height);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, canvas.height);
+
+  const lineX = PAD_L + SYM_R + 4;
+
+  // Eje vertical
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(lineX - SYM_R - 4, PAD_T);
+  ctx.lineTo(lineX - SYM_R - 4, PAD_T + aspectPkts.length * SLOT_H);
+  ctx.stroke();
+
+  const hitAreas = [];
+  aspectPkts.forEach((p, i) => {
+    let drawFn, aspLabel;
+    if (p.code === 'FF03') {
+      drawFn = drawEncendido; aspLabel = 'Encendido';
+    } else if (p.code === 'FF04') {
+      drawFn = drawApagado;   aspLabel = 'Apagado';
+    } else {
+      const v4  = p.val & 0xF;
+      const asp = ASPECTOS_SENSADO[v4];
+      if (!asp || !asp.draw) return;
+      drawFn = asp.draw; aspLabel = asp.label;
+    }
+    const cx  = lineX;
+    const cy  = PAD_T + i * SLOT_H + SLOT_H / 2;
+
+    // Línea horizontal de guía
+    ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lineX - SYM_R - 4, cy); ctx.lineTo(W - PAD_R + 4, cy); ctx.stroke();
+
+    // Símbolo
+    ctx.save(); drawFn(ctx, cx, cy, SYM_R); ctx.restore();
+
+    // Hora a la izquierda
+    const hhmm = p.tsDate.toISOString().slice(11, 19);
+    ctx.fillStyle = '#999'; ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(hhmm, lineX - SYM_R - 10, cy + 4);
+
+    // Fecha cuando cambia de día
+    const d = p.tsDate.toISOString().slice(0, 10);
+    const prevD = i > 0 ? aspectPkts[i-1].tsDate.toISOString().slice(0, 10) : '';
+    if (d !== prevD) {
+      ctx.fillStyle = '#1a6fba'; ctx.font = 'bold 9px JetBrains Mono, monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(d, lineX - SYM_R - 10, cy - 6);
+    }
+
+    hitAreas.push({ x1: 0, x2: W, y1: cy - SLOT_H/2, y2: cy + SLOT_H/2,
+                    pkt: p, asp: { label: aspLabel }, idx: i });
+  });
+
+  attachTooltip(canvas, hitAreas, aspectPkts);
+}
+
+// ── Tabla de tiempos por aspecto ─────────────────────────────────────────────
+function renderSensadoTimes(aspectPkts) {
+  // Umbral configurable: número de horas a partir del cual se excluye el intervalo
+  const horasInput = parseFloat(document.getElementById('sn-max-gap').value);
+  const horas = (!isNaN(horasInput) && horasInput > 0) ? horasInput : 4;
+  const MAX_VALID_MS = horas * 3600 * 1000;
+
+  // Construir lista de períodos de apagado: [{off: ts_ms, on: ts_ms}, ...]
+  // Solo se considera período de apagado si FF04 y FF03 son paquetes CONSECUTIVOS.
+  const offPeriods = [];
+  for (let i = 0; i < allPackets.length - 1; i++) {
+    const p = allPackets[i];
+    const q = allPackets[i + 1];
+    if (p.code === 'FF04' && q.code === 'FF03' && p.ts && q.ts) {
+      offPeriods.push({ off: p.ts * 1000 + p.ms, on: q.ts * 1000 + q.ms });
+    }
+  }
+
+  // Comprueba si un intervalo [t1, t2] solapa con algún período de apagado
+  function isInOffPeriod(t1, t2) {
+    return offPeriods.some(p => t1 < p.on && t2 > p.off);
+  }
+
+  // Acumulador: código aspecto → { label, totalMs, activaciones }
+  const acc = {};
+
+  for (let i = 0; i < aspectPkts.length - 1; i++) {
+    const cur  = aspectPkts[i];
+    const next = aspectPkts[i + 1];
+    const v4   = cur.val & 0xF;
+    const asp  = ASPECTOS_SENSADO[v4];
+    if (!asp || !asp.draw) continue; // L10, L11: ignorar
+
+    const tCur  = cur.ts  * 1000 + cur.ms;
+    const tNext = next.ts * 1000 + next.ms;
+    const diff  = tNext - tCur;
+
+    // Excluir saltos hacia atrás, saltos hacia adelante excesivos
+    // y períodos que contienen un apagado/encendido del equipo
+    if (diff <= 0 || diff > MAX_VALID_MS) continue;
+    if (isInOffPeriod(tCur, tNext)) continue;
+
+    const key = asp.label;
+    if (!acc[key]) acc[key] = { label: asp.label, totalMs: 0, activaciones: 0 };
+    acc[key].totalMs     += diff;
+    acc[key].activaciones += 1;
+  }
+
+  const rows    = Object.values(acc).sort((a, b) => b.totalMs - a.totalMs);
+  const grandMs = rows.reduce((s, r) => s + r.totalMs, 0);
+
+  const tbody = document.getElementById('sensado-times-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:16px;color:var(--muted);text-align:center;">Sin datos de tiempo calculables en el rango seleccionado.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const pct = grandMs > 0 ? (r.totalMs / grandMs * 100).toFixed(2) : '—';
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 12px;color:var(--accent);font-weight:600;">${r.label}</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--accent2);font-weight:600;">${formatMs(r.totalMs)}</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--muted);">${pct} %</td>
+      <td style="padding:8px 12px;text-align:right;color:var(--text);">${r.activaciones}</td>
+    </tr>`;
+  }).join('') + `<tr style="border-top:2px solid var(--border);background:var(--surface2);">
+    <td style="padding:8px 12px;font-weight:700;color:var(--text);">TOTAL</td>
+    <td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--text);">${formatMs(grandMs)}</td>
+    <td style="padding:8px 12px;"></td>
+    <td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--text);">${rows.reduce((s,r)=>s+r.activaciones,0)}</td>
+  </tr>`;
+}
+
+function formatMs(ms) {
+  if (ms < 1000) return ms + ' ms';
+  const h  = Math.floor(ms / 3600000);
+  const m  = Math.floor((ms % 3600000) / 60000);
+  const s  = Math.floor((ms % 60000) / 1000);
+  const rm = ms % 1000;
+  const parts = [];
+  if (h)  parts.push(h + 'h');
+  if (m)  parts.push(m + 'min');
+  if (s)  parts.push(s + 's');
+  if (rm) parts.push(rm + 'ms');
+  return parts.join(' ');
+}
+
+function buildSensadoLegend() {
+  const items = [
+    { label: 'L1 — Amarillo',                    draw: drawAmarillo },
+    { label: 'L2 — Verde destellante',            draw: drawVerdeDestellante },
+    { label: 'L3 — Verde',                        draw: drawVerde },
+    { label: 'L5 — Amarillo+Pantalla',            draw: drawAmarilloSobrecuadrado },
+    { label: 'L6 — Verde/Amarillo',               draw: drawAmarilloSobreVerde },
+    { label: 'L7·L8 — Rojo',                     draw: drawRojo },
+    { get label() { return 'Fondo Configurado' + fondoDesc(); }, get draw() { return getFondoDraw(); } },
+    { label: 'Encendido (FF03)',                  draw: drawEncendido },
+    { label: 'Apagado (FF04)',                    draw: drawApagado },
+  ];
+  const bar = document.getElementById('sensado-legend');
+  bar.innerHTML = items.map(item => {
+    const id = 'leg_' + Math.random().toString(36).slice(2);
+    // Usamos un pequeño canvas inline por ítem
+    return `<div class="sensado-legend-item">
+      <canvas id="${id}" width="32" height="32"></canvas>
+      <span>${item.label}</span>
+    </div>`;
+  }).join('');
+  // Dibujar en cada canvas de leyenda
+  items.forEach((item, i) => {
+    const c = bar.querySelectorAll('canvas')[i];
+    if (!c) return;
+    const ctx2 = c.getContext('2d');
+    ctx2.clearRect(0, 0, 32, 32);
+    ctx2.save();
+    item.draw(ctx2, 16, 16, 11);
+    ctx2.restore();
+  });
+}
+let statsData   = [];
+let statsSortCol = 'count';
+let statsSortAsc = false;
+
+function buildStatsData() {
+  const map = {};
+  allPackets.forEach(p => {
+    if (!map[p.code]) {
+      map[p.code] = { code: p.code, name: p.varname, count: 0, chkOk: 0, chkErr: 0 };
+    }
+    map[p.code].count++;
+    if (p.chkOk) map[p.code].chkOk++;
+    else          map[p.code].chkErr++;
+  });
+  const total = allPackets.length || 1;
+  statsData = Object.values(map).map(r => ({
+    ...r,
+    pct: (r.count / total * 100)
+  }));
+}
+
+// ─── ESTADÍSTICAS ─────────────────────────────────────────────────────────────
+function renderStats() {
+  buildStatsData();
+
+  const total   = allPackets.length;
+  const chkOkN  = allPackets.filter(p => p.chkOk).length;
+  const chkErrN = total - chkOkN;
+
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-tipos').textContent   = statsData.length;
+  document.getElementById('st-chk-ok').textContent  = chkOkN + ' (' + (chkOkN/total*100).toFixed(1) + '%)';
+  document.getElementById('st-chk-err').textContent = chkErrN + ' (' + (chkErrN/total*100).toFixed(1) + '%)';
+
+  // Ordenar
+  const key = statsSortCol;
+  const asc = statsSortAsc;
+  const sorted = [...statsData].sort((a, b) => {
+    const av = a[key], bv = b[key];
+    if (typeof av === 'string') return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return asc ? av - bv : bv - av;
+  });
+
+  const maxCount = Math.max(...statsData.map(r => r.count), 1);
+
+  const tbody = document.getElementById('stats-body');
+  tbody.innerHTML = sorted.map(r => {
+    const barW = Math.round(r.count / maxCount * 100);
+    return `<tr>
+      <td class="st-code">${r.code}</td>
+      <td class="st-name">${r.name}</td>
+      <td class="st-count">${r.count}</td>
+      <td class="st-pct">${r.pct.toFixed(2)} %</td>
+      <td class="st-chk-ok"  style="text-align:right">${r.chkOk}</td>
+      <td class="st-chk-err" style="text-align:right">${r.chkErr > 0 ? r.chkErr : '—'}</td>
+      <td class="st-bar-cell">
+        <div class="st-bar-wrap">
+          <div class="st-bar" style="width:${barW}%"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Marcar columna ordenada
+  document.querySelectorAll('#stats-table thead th').forEach(th => th.classList.remove('sorted'));
+  const ths = document.querySelectorAll('#stats-table thead th');
+  const colIdx = ['code','name','count','pct','chkOk','chkErr'].indexOf(statsSortCol);
+  if (colIdx >= 0 && ths[colIdx]) ths[colIdx].classList.add('sorted');
+}
+
+function sortStats(col) {
+  if (statsSortCol === col) statsSortAsc = !statsSortAsc;
+  else { statsSortCol = col; statsSortAsc = col === 'code' || col === 'name'; }
+  renderStats();
+}
+
+// ── VISTA TABLA / GRÁFICO ────────────────────────────────────────────────────
+let statsView = 'tabla';
+
+function switchStatsView(view) {
+  statsView = view;
+  document.getElementById('sv-btn-tabla').classList.toggle('active',   view === 'tabla');
+  document.getElementById('sv-btn-grafico').classList.toggle('active', view === 'grafico');
+  document.getElementById('stats-table-wrap').style.display  = view === 'tabla'   ? '' : 'none';
+  document.getElementById('stats-chart-wrap').classList.toggle('visible', view === 'grafico');
+  if (view === 'grafico') renderPieChart();
+}
+
+function renderPieChart() {
+  if (!statsData.length) return;
+
+  // Paleta de colores
+  const palette = [
+    '#1a6fba','#c47a00','#1a8a4a','#cc2a2a','#7b3fa0','#0e7c86',
+    '#b35c00','#2d6e3e','#8a1a1a','#3d5a99','#6b8e23','#c45c8a',
+    '#4a7ab5','#d4860a','#2a9d5c','#e05555','#9b59b6','#16a4b0',
+    '#c97a1e','#3aab6e','#a03030','#5571b8','#8db530','#d4709a'
+  ];
+
+  const sorted = [...statsData].sort((a, b) => b.count - a.count);
+  const total  = sorted.reduce((s, r) => s + r.count, 0);
+
+  const canvas = document.getElementById('stats-pie-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R  = Math.min(W, H) / 2 - 20;
+
+  ctx.clearRect(0, 0, W, H);
+
+  let startAngle = -Math.PI / 2;
+  sorted.forEach((r, i) => {
+    const slice = (r.count / total) * 2 * Math.PI;
+    const color = palette[i % palette.length];
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Etiqueta si el sector es suficientemente grande
+    if (slice > 0.18) {
+      const midAngle = startAngle + slice / 2;
+      const lx = cx + Math.cos(midAngle) * R * 0.65;
+      const ly = cy + Math.sin(midAngle) * R * 0.65;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(r.code, lx, ly);
+    }
+
+    // Guardar color en el dato para la leyenda
+    r._color = color;
+    startAngle += slice;
+  });
+
+  // Leyenda
+  const legend = document.getElementById('stats-legend');
+  legend.innerHTML = sorted.map(r => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${r._color}"></div>
+      <span class="legend-code">${r.code}</span>
+      <span class="legend-name">${r.name}</span>
+      <span class="legend-pct">${r.count} (${r.pct.toFixed(1)}%)</span>
+    </div>`).join('');
+}
+
+</script>
+</body>
+</html>
