@@ -359,6 +359,31 @@
   .st-chk-ok  { color: var(--green); font-size: 12px; }
   .st-chk-err { color: var(--red);   font-size: 12px; font-weight: 700; }
 
+  /* ── CÓDIGOS ERROR ── */
+  .ce-th {
+    background: var(--surface2); border-bottom: 2px solid var(--border);
+    color: var(--muted); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 8px 12px; text-align: left;
+  }
+  .ce-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  .ce-sortable:hover { color: var(--accent); }
+  #ce-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  #ce-table tbody tr:hover { background: var(--surface2); }
+  #ce-table td { padding: 8px 12px; font-size: 13px; }
+  .ce-codigo { color: var(--accent); font-weight: 700; }
+  .ce-fab    { color: var(--muted); font-size: 12px; }
+  .ce-desc   { color: var(--muted); font-style: italic; font-size: 12px; }
+  .ce-act    { color: var(--red);   font-weight: 600; text-align: right; }
+  .ce-desact { color: var(--green); font-weight: 600; text-align: right; }
+  .ce-total  { color: var(--accent2); font-weight: 600; text-align: right; }
+  .ce-pct    { color: var(--muted); text-align: right; }
+  .ce-estado-activo   { color: var(--red);   font-weight: 700; text-align: center; }
+  .ce-estado-resuelto { color: var(--green);               text-align: center; }
+  .ce-bar-cell { width: 180px; }
+  .ce-bar-wrap { background: var(--surface2); height: 10px; border-radius: 2px; overflow: hidden; display: flex; }
+  .ce-bar-act   { height: 100%; background: var(--red);   border-radius: 2px 0 0 2px; }
+  .ce-bar-desact{ height: 100%; background: var(--green); border-radius: 0 2px 2px 0; }
+
   /* ── TOGGLE VISTA ESTADÍSTICAS ── */
   .stats-view-toggle {
     display: flex; gap: 0; margin-bottom: 16px;
@@ -524,6 +549,7 @@
   <!-- PESTAÑAS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('paquetes', this)">Paquetes</button>
+    <button class="tab-btn"        onclick="switchTab('codigoserror', this)">Códigos Fallo</button>
     <button class="tab-btn"        onclick="switchTab('estadisticas', this)">Estadísticas</button>
     <button class="tab-btn"        onclick="switchTab('sensado', this)">Gráfico de Sensado</button>
     <button class="tab-btn"        id="tab-btn-errores" onclick="switchTab('errores', this)">Errores Detectados</button>
@@ -678,6 +704,28 @@
     <div id="err-summary"></div>
     <div id="err-sections"></div>
   </div><!-- #tab-errores -->
+
+  <!-- PESTAÑA: CÓDIGOS FALLO -->
+  <div id="tab-codigoserror" class="tab-panel">
+    <div id="ce-summary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px;"></div>
+    <div id="ce-table-wrap" style="overflow-x:auto;">
+      <table id="ce-table" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th class="ce-th ce-sortable" onclick="sortCE('codigo')"    >Cód. fallo<span class="sort-arrow">⇕</span></th>
+            <th class="ce-th"                                              >Descripción</th>
+            <th class="ce-th ce-sortable" onclick="sortCE('activaciones')" style="text-align:right">Activaciones<span class="sort-arrow">⇕</span></th>
+            <th class="ce-th ce-sortable" onclick="sortCE('desactivaciones')" style="text-align:right">Desactivaciones<span class="sort-arrow">⇕</span></th>
+            <th class="ce-th ce-sortable" onclick="sortCE('total')"       style="text-align:right">Total eventos<span class="sort-arrow">⇕</span></th>
+            <th class="ce-th ce-sortable" onclick="sortCE('pct')"         style="text-align:right">% s/total fallos<span class="sort-arrow">⇕</span></th>
+            <th class="ce-th"                                              style="width:180px;">Distribución</th>
+          </tr>
+        </thead>
+        <tbody id="ce-body"></tbody>
+      </table>
+    </div>
+    <div id="ce-empty" class="empty-msg" style="display:none;">No se han registrado paquetes de código de fallo (FF06) en este registro.</div>
+  </div><!-- #tab-codigoserror -->
 
   <!-- PESTAÑA: GRÁFICO DE SENSADO -->
   <div id="tab-sensado" class="tab-panel">
@@ -871,9 +919,12 @@ function interpretValue(code, val) {
     // FF04 – Apagado
     case 'FF04': return val ? 'Power-OFF' : 'Power-OFF (valor 0)';
 
-    // FF06 – Código de fallo del sistema (BCD 16 bits)
+    // FF06 – Código de fallo del sistema
+    // Bit 0 = 1 → activación del fallo; bit 0 = 0 → desactivación del fallo
+    // Bits 1–11 = código del fallo; bits 12–15 = fabricante
     case 'FF06': {
-      const activacion = b(0) ? 'ACTIVACIÓN' : 'Desactivación';
+      const esActivacion = b(0) === 1;
+      const activacion = esActivacion ? '⚠ ACTIVACIÓN' : '✓ Desactivación';
       const codigo = (val >> 1) & 0x7FF;      // bits 1..11
       const fabrico = (val >> 12) & 0xF;      // bits 12..15 (fabricante)
       return `${activacion} | Código fallo: ${codigo} | Fab: ${fabrico}`;
@@ -1088,6 +1139,19 @@ let sortCol = 'num';
 let sortAsc = true;
 let numPktsDeclarado = 0;
 let balizasFondos = [null, null, null, null]; // fondo configurado de balizas 1-4
+// Errores de cabecera (se rellenan en parseCLS)
+let cabeceraErrors = {
+  tamanoIncorrecto: false,
+  tamanoEncontrado: 0,
+  crcError:         false,
+  crcStored:        0,
+  crcCalc:          0,
+  chkHdrError:      false,
+  chkHdrStored:     0,
+  chkHdrCalc:       0,
+  versionError:     false,
+  versionFound:     '',
+};
 
 // ─── FILE INPUT ───────────────────────────────────────────────────────────────
 const dropzone = document.getElementById('dropzone');
@@ -1177,6 +1241,15 @@ function resetApp() {
   selectedCodes = new Set(); allCodes = [];
   document.getElementById('f-code-label').textContent = 'Todos';
   document.getElementById('f-code-list').innerHTML    = '';
+
+  // ── Cabecera errors reset ──
+  cabeceraErrors = { tamanoIncorrecto: false, tamanoEncontrado: 0, crcError: false, crcStored: 0, crcCalc: 0, chkHdrError: false, chkHdrStored: 0, chkHdrCalc: 0, versionError: false, versionFound: '' };
+
+  // ── Pestaña Códigos Error ──
+  document.getElementById('ce-summary').innerHTML  = '';
+  document.getElementById('ce-body').innerHTML     = '';
+  document.getElementById('ce-empty').style.display = 'none';
+  document.getElementById('ce-table-wrap').style.display = '';
 
   // ── Volver a la pestaña Paquetes ──
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -1408,6 +1481,7 @@ function parseCLS(buf, file) {
     document.getElementById('fi-crc').className      = 'fi-val bad';
     document.getElementById('fi-signal').textContent = '—';
     numPktsDeclarado = 0;
+    cabeceraErrors = { tamanoIncorrecto: true, tamanoEncontrado: headerSize, crcError: false, crcStored: 0, crcCalc: 0, chkHdrError: false, chkHdrStored: 0, chkHdrCalc: 0, versionError: false, versionFound: '' };
 
     dropzone.style.display = 'none';
     document.getElementById('app').classList.add('visible');
@@ -1492,6 +1566,19 @@ function parseCLS(buf, file) {
   const chkHdrCalc = calcChecksumHeader(buf);
   const chkHdrOk   = (chkHdr2 === chkHdrCalc);
 
+  const verOk = buf[2] === 0x65 && buf[3] === 0x1E;
+  cabeceraErrors = {
+    tamanoIncorrecto: false,
+    tamanoEncontrado: headerSize,
+    crcError:     !crcOk,
+    crcStored:    crc_stored,
+    crcCalc:      crc_calc,
+    chkHdrError:  !chkHdrOk,
+    chkHdrStored: chkHdr2,
+    chkHdrCalc:   chkHdrCalc,
+    versionError: !verOk,
+    versionFound: toHex(buf[2],2) + 'h + ' + toHex(buf[3],2) + 'h',
+  };
   const tipoS     = tipoSenal & 0x7F;
   const anchoDesc = (tipoSenal & 0x80) ? 'Ancho UIC' : 'Ancho Convencional';
   const focosDesc = tipoFocos < 128 ? 'Incandescentes' : 'LED';
@@ -1635,24 +1722,35 @@ let renderedRows = 0;
 
 function buildRow(p) {
   const chkCell = p.chkOk
-    ? `<span class="chk-ok">✓</span>`
-    : `<span class="chk-err">✗ ERR</span>`;
+    ? `<span class="chk-ok">&#10003;</span>`
+    : `<span class="chk-err">&#10007; ERR</span>`;
   const valHex  = '0x' + toHex(p.val, 8);
-  const dateStr = p.tsDate ? p.tsDate.toISOString().slice(0, 10) : '—';
-  const timeStr = p.tsDate ? p.tsDate.toISOString().slice(11, 19) : '—';
-  return `<tr class="${p.chkOk?'':'err'}">
-    <td class="td-num">${p.num}</td>
-    <td class="td-code">${p.code}</td>
-    <td class="td-varname">${p.varname}</td>
-    <td class="td-ts">${dateStr}</td>
-    <td class="td-ts">${timeStr}</td>
-    <td class="td-num">${p.ms}</td>
-    <td class="td-val">${valHex}</td>
-    <td class="td-interp">${p.valInterp}</td>
-    <td class="td-sensado">${p.sensado || ''}</td>
-    <td class="${p.eficacia === 'Sin Eficacia' ? 'td-sin-eficacia' : 'td-eficacia'}">${p.eficacia || ''}</td>
-    <td class="td-chk">${chkCell}</td>
-  </tr>`;
+  const dateStr = p.tsDate ? p.tsDate.toISOString().slice(0, 10) : '&#8212;';
+  const timeStr = p.tsDate ? p.tsDate.toISOString().slice(11, 19) : '&#8212;';
+
+  // Para FF06: colorear segun activacion (rojo tenue) o desactivacion (verde tenue)
+  let rowStyle = '';
+  let rowClass = p.chkOk ? '' : 'err';
+  if (p.code === 'FF06') {
+    const esActivacion = (p.val & 1) === 1;
+    rowStyle = esActivacion
+      ? 'background:#fdf0f0;border-left:3px solid var(--red);'
+      : 'background:#f0fdf4;border-left:3px solid var(--green);';
+  }
+
+  return '<tr class="' + rowClass + '" style="' + rowStyle + '">'
+    + '<td class="td-num">' + p.num + '</td>'
+    + '<td class="td-code">' + p.code + '</td>'
+    + '<td class="td-varname">' + p.varname + '</td>'
+    + '<td class="td-ts">' + dateStr + '</td>'
+    + '<td class="td-ts">' + timeStr + '</td>'
+    + '<td class="td-num">' + p.ms + '</td>'
+    + '<td class="td-val">' + valHex + '</td>'
+    + '<td class="td-interp">' + p.valInterp + '</td>'
+    + '<td class="td-sensado">' + (p.sensado || '') + '</td>'
+    + '<td class="' + (p.eficacia === 'Sin Eficacia' ? 'td-sin-eficacia' : 'td-eficacia') + '">' + (p.eficacia || '') + '</td>'
+    + '<td class="td-chk">' + chkCell + '</td>'
+    + '</tr>';
 }
 
 function renderTable() {
@@ -1989,6 +2087,7 @@ function switchTab(name, btn) {
   if (name === 'estadisticas') renderStats();
   if (name === 'errores')      renderErrors();
   if (name === 'sensado')      renderSensado();
+  if (name === 'codigoserror') renderCE();
 }
 
 // ─── ERRORES DETECTADOS ───────────────────────────────────────────────────────
@@ -2017,7 +2116,34 @@ function hasPktCountMismatch() {
 }
 
 function updateErrorBadge() {
-  const n = countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0);
+  const falloCodesSetB = new Set([
+    'FF06',
+    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
+    'FE8E','FE8F',
+    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
+    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
+    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
+  ]);
+  const cabErrCount = (cabeceraErrors.tamanoIncorrecto ? 1 : 0)
+    + (cabeceraErrors.crcError     ? 1 : 0)
+    + (cabeceraErrors.chkHdrError  ? 1 : 0)
+    + (cabeceraErrors.versionError ? 1 : 0);
+  const hasFallos = allPackets.some(p => falloCodesSetB.has(p.code)) ? 1 : 0;
+  const _b03 = allPackets.filter(p => p.code === 'FF03').length;
+  const _b04 = allPackets.filter(p => p.code === 'FF04').length;
+  let _bEncAp = (_b03 === 0 ? 1 : 0) + (_b04 === 0 ? 1 : 0);
+  let _bInAp = false, _bBuf = 0;
+  allPackets.forEach(p => {
+    if (p.code === 'FF04') {
+      if (_bInAp && _bBuf > 0) _bEncAp++;
+      _bInAp = true; _bBuf = 0;
+    } else if (p.code === 'FF03') {
+      if (_bInAp && _bBuf > 0) _bEncAp++;
+      _bInAp = false; _bBuf = 0;
+    } else if (_bInAp) _bBuf++;
+  });
+  if (_bInAp && _bBuf > 0) _bEncAp++;
+  const n = cabErrCount + countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0) + hasFallos + _bEncAp;
   const tabBtn = document.getElementById('tab-btn-errores');
   tabBtn.textContent = n > 0 ? `Errores Detectados (${n})` : 'Errores Detectados';
   tabBtn.style.color = n > 0 ? 'var(--red)' : '';
@@ -2025,6 +2151,26 @@ function updateErrorBadge() {
 
 function renderErrors() {
   if (!allPackets.length) return;
+
+  // ── 0. Errores de cabecera ──────────────────────────────────────────────────
+  const cabErrs = [];
+  if (cabeceraErrors.tamanoIncorrecto) {
+    cabErrs.push('Tamaño de cabecera incorrecto: encontrado <strong>' + cabeceraErrors.tamanoEncontrado
+      + ' bytes</strong>, esperado <strong>72 bytes</strong>. No se pueden leer los campos de cabecera.');
+  } else {
+    if (cabeceraErrors.crcError) {
+      cabErrs.push('CRC-CCITT incorrecto: almacenado <strong>0x' + toHex(cabeceraErrors.crcStored)
+        + '</strong>, calculado <strong>0x' + toHex(cabeceraErrors.crcCalc) + '</strong>.');
+    }
+    if (cabeceraErrors.chkHdrError) {
+      cabErrs.push('Checksum de cabecera incorrecto: almacenado <strong>0x' + toHex(cabeceraErrors.chkHdrStored)
+        + '</strong>, calculado <strong>0x' + toHex(cabeceraErrors.chkHdrCalc) + '</strong>.');
+    }
+    if (cabeceraErrors.versionError) {
+      cabErrs.push('Versión de formato incorrecta: encontrado <strong>' + cabeceraErrors.versionFound
+        + '</strong>, esperado <strong>65h + 1Eh</strong> (versión A-30).');
+    }
+  }
 
   // ── 1. Saltos temporales hacia atrás ──────────────────────────────────────
   const jumpErrors = [];
@@ -2056,9 +2202,42 @@ function renderErrors() {
   const pktCountOk  = !hasPktCountMismatch();
 
   // ── Resumen ───────────────────────────────────────────────────────────────
-  const totalErrors = jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1);
+  // Total paquetes de códigos de fallo (FF06 + FExx)
+  const falloCodesSet = new Set([
+    'FF06',
+    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
+    'FE8E','FE8F',
+    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
+    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
+    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
+  ]);
+  const totalFalloPkts = allPackets.filter(p => falloCodesSet.has(p.code)).length;
+
+  // Pre-compute encendido/apagado error count for totalErrors
+  const _ff03n = allPackets.filter(p => p.code === 'FF03').length;
+  const _ff04n = allPackets.filter(p => p.code === 'FF04').length;
+  let _encApErr = (_ff03n === 0 ? 1 : 0) + (_ff04n === 0 ? 1 : 0);
+  // count groups of packets after FF04 without prior FF03 (including end-of-file)
+  let _inAp2 = false, _buf2 = 0;
+  allPackets.forEach(p => {
+    if (p.code === 'FF04') {
+      if (_inAp2 && _buf2 > 0) _encApErr++;
+      _inAp2 = true; _buf2 = 0;
+    } else if (p.code === 'FF03') {
+      if (_inAp2 && _buf2 > 0) _encApErr++;
+      _inAp2 = false; _buf2 = 0;
+    } else if (_inAp2) _buf2++;
+  });
+  if (_inAp2 && _buf2 > 0) _encApErr++;
+  const totalErrors = cabErrs.length + jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1) + (totalFalloPkts > 0 ? 1 : 0) + _encApErr;
   document.getElementById('err-summary').innerHTML = `
     <div class="err-summary-bar">
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${cabErrs.length === 0 ? 'zero' : ''}">${cabErrs.length}</div>
+          <div class="err-name">Errores de cabecera</div>
+        </div>
+      </div>
       <div class="err-badge">
         <div>
           <div class="err-count ${jumpErrors.length === 0 ? 'zero' : ''}">${jumpErrors.length}</div>
@@ -2077,10 +2256,39 @@ function renderErrors() {
           <div class="err-name">Discrepancia nº paquetes declarados/leídos</div>
         </div>
       </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${totalFalloPkts === 0 ? 'zero' : ''}">${totalFalloPkts}</div>
+          <div class="err-name">Paquetes de códigos de fallo registrados</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${_encApErr === 0 ? 'zero' : ''}">${_encApErr}</div>
+          <div class="err-name">Errores encendido / apagado</div>
+        </div>
+      </div>
     </div>`;
 
   // ── Secciones ─────────────────────────────────────────────────────────────
   let sectionsHtml = '';
+
+  // Sección 0: errores de cabecera
+  const cabTitle = cabErrs.length > 0
+    ? '<div class="err-section-title">Errores de cabecera <span class="err-section-count">' + cabErrs.length + '</span></div>'
+    : '<div class="err-section-title ok">Errores de cabecera <span class="err-section-count">0</span></div>';
+
+  if (cabErrs.length === 0) {
+    sectionsHtml += '<div class="err-section">' + cabTitle
+      + '<div class="err-none">✓ Cabecera correcta: CRC, checksum y versión de formato OK.</div></div>';
+  } else {
+    const cabRows = cabErrs.map(msg =>
+      '<tr class="err-row-highlight"><td style="padding:8px 12px;font-size:13px;">⚠ ' + msg + '</td></tr>'
+    ).join('');
+    sectionsHtml += '<div class="err-section">' + cabTitle
+      + '<table style="width:100%;border-collapse:collapse;margin-top:8px;">'
+      + '<tbody>' + cabRows + '</tbody></table></div>';
+  }
 
   // Sección 1: saltos temporales
   const jumpTitle = jumpErrors.length > 0
@@ -2159,6 +2367,130 @@ function renderErrors() {
         </p>
       </div>`;
   }
+
+  // ── Sección 4: Códigos de fallo registrados ─────────────────────────────
+  const falloCodesSetE = new Set([
+    'FF06',
+    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
+    'FE8E','FE8F',
+    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
+    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
+    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
+  ]);
+  const nFalloPkts = allPackets.filter(p => falloCodesSetE.has(p.code)).length;
+  const falloTitle = nFalloPkts === 0
+    ? '<div class="err-section-title ok">Códigos de fallo registrados <span class="err-section-count">0</span></div>'
+    : '<div class="err-section-title">Códigos de fallo registrados <span class="err-section-count">' + nFalloPkts + '</span></div>';
+
+  if (nFalloPkts === 0) {
+    sectionsHtml += '<div class="err-section">' + falloTitle + '<div class="err-none">✓ No se han registrado paquetes de códigos de fallo.</div></div>';
+  } else {
+    sectionsHtml += '<div class="err-section">' + falloTitle
+      + '<p style="font-size:13px;color:var(--text);margin-top:8px;">'
+      + 'Existe registro de <strong>' + nFalloPkts + '</strong> código' + (nFalloPkts !== 1 ? 's' : '') + ' de fallo.'
+      + ' Consulte la pestaña <strong>Códigos Fallo</strong> para el detalle.'
+      + '</p></div>';
+  }
+  // ── Sección 5: Encendido / Apagado ──────────────────────────────────────
+  // Regla: los paquetes solo pueden aparecer tras un FF03 (encendido).
+  // Cualquier paquete tras un FF04 (apagado) sin FF03 posterior es un error,
+  // incluyendo los que quedan al final del fichero tras el último FF04.
+  const ff03Pkts = allPackets.filter(p => p.code === 'FF03');
+  const ff04Pkts = allPackets.filter(p => p.code === 'FF04');
+  const sinEncendido = ff03Pkts.length === 0;
+  const sinApagado   = ff04Pkts.length === 0;
+
+  // Recorrer todos los paquetes: acumular los que aparecen tras FF04 sin FF03 previo
+  const gruposTrasFf04 = [];  // cada grupo: { apagado, encendido|null, pkts[] }
+  let enApagado  = false;
+  let apagadoPkt = null;
+  let bufAp      = [];
+
+  allPackets.forEach(p => {
+    if (p.code === 'FF04') {
+      // Si ya estábamos en apagado con paquetes, cerrar grupo anterior
+      if (enApagado && bufAp.length > 0) {
+        gruposTrasFf04.push({ apagado: apagadoPkt, encendido: null, pkts: [...bufAp] });
+      }
+      enApagado  = true;
+      apagadoPkt = p;
+      bufAp      = [];
+    } else if (p.code === 'FF03') {
+      if (enApagado && bufAp.length > 0) {
+        gruposTrasFf04.push({ apagado: apagadoPkt, encendido: p, pkts: [...bufAp] });
+      }
+      enApagado  = false;
+      apagadoPkt = null;
+      bufAp      = [];
+    } else if (enApagado) {
+      bufAp.push(p);
+    }
+  });
+  // Paquetes tras el último FF04 sin FF03 posterior
+  if (enApagado && bufAp.length > 0) {
+    gruposTrasFf04.push({ apagado: apagadoPkt, encendido: null, pkts: [...bufAp] });
+  }
+
+  const nGruposErr   = gruposTrasFf04.length;
+  const nPktsTrasFf04 = gruposTrasFf04.reduce((s, g) => s + g.pkts.length, 0);
+
+  const encApTitle = (sinEncendido || sinApagado || nGruposErr > 0)
+    ? '<div class="err-section-title">Encendido / Apagado <span class="err-section-count">'
+      + ((sinEncendido ? 1 : 0) + (sinApagado ? 1 : 0) + nGruposErr) + '</span></div>'
+    : '<div class="err-section-title ok">Encendido / Apagado <span class="err-section-count">0</span></div>';
+
+  let encApHtml = '<div class="err-section">' + encApTitle;
+
+  if (!sinEncendido && !sinApagado && nGruposErr === 0) {
+    encApHtml += '<div class="err-none">✓ Secuencia de encendido/apagado correcta. '
+      + ff03Pkts.length + ' encendido(s) y ' + ff04Pkts.length + ' apagado(s) registrados.</div>';
+  } else {
+    if (sinEncendido) {
+      encApHtml += '<div class="err-row-highlight" style="padding:8px 12px;margin-bottom:8px;font-size:13px;">'
+        + '⚠ No se ha registrado ningún paquete de <strong>encendido (FF03)</strong>.</div>';
+    } else {
+      encApHtml += '<div style="padding:4px 12px;margin-bottom:4px;font-size:12px;color:var(--muted);">'
+        + '✓ ' + ff03Pkts.length + ' paquete(s) de encendido (FF03) registrados.</div>';
+    }
+    if (sinApagado) {
+      encApHtml += '<div class="err-row-highlight" style="padding:8px 12px;margin-bottom:8px;font-size:13px;">'
+        + '⚠ No se ha registrado ningún paquete de <strong>apagado (FF04)</strong>.</div>';
+    } else {
+      encApHtml += '<div style="padding:4px 12px;margin-bottom:4px;font-size:12px;color:var(--muted);">'
+        + '✓ ' + ff04Pkts.length + ' paquete(s) de apagado (FF04) registrados.</div>';
+    }
+    if (nGruposErr > 0) {
+      encApHtml += '<p style="font-size:12px;color:var(--muted);margin:12px 0 8px;">'
+        + 'Se han detectado <strong>' + nPktsTrasFf04 + ' paquete(s)</strong> registrados tras un apagado (FF04) '
+        + 'sin encendido (FF03) previo, en <strong>' + nGruposErr + ' intervalo(s)</strong>:</p>';
+      const intervalRows = gruposTrasFf04.map((g, i) => {
+        const tsAp = g.apagado.tsDate ? g.apagado.tsDate.toISOString().replace('T',' ').slice(0,19) : '—';
+        const tsEn = g.encendido
+          ? (g.encendido.tsDate ? g.encendido.tsDate.toISOString().replace('T',' ').slice(0,19) : '—')
+          : '<span style="color:var(--red);">Sin FF03 posterior (fin de fichero)</span>';
+        const listacodigos = [...new Set(g.pkts.map(p => p.code))].join(', ');
+        return '<tr class="err-row-highlight">'
+          + '<td style="padding:6px 10px;color:var(--muted);">' + (i+1) + '</td>'
+          + '<td style="padding:6px 10px;color:var(--accent2);">#' + g.apagado.num + ' — ' + tsAp + '</td>'
+          + '<td style="padding:6px 10px;color:var(--accent2);">' + (g.encendido ? '#' + g.encendido.num + ' — ' + tsEn : tsEn) + '</td>'
+          + '<td style="padding:6px 10px;text-align:right;color:var(--red);font-weight:600;">' + g.pkts.length + '</td>'
+          + '<td style="padding:6px 10px;color:var(--muted);font-size:11px;">' + listacodigos + '</td>'
+          + '</tr>';
+      }).join('');
+      encApHtml += '<table style="width:100%;border-collapse:collapse;">'
+        + '<thead><tr style="background:var(--surface2);">'
+        + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">#</th>'
+        + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Apagado (FF04)</th>'
+        + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Siguiente encendido (FF03)</th>'
+        + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:right;border-bottom:2px solid var(--border);">Paquetes</th>'
+        + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Códigos presentes</th>'
+        + '</tr></thead><tbody>' + intervalRows + '</tbody></table>';
+    }
+  }
+  encApHtml += '</div>';
+  sectionsHtml += encApHtml;
+
+  const encApErrors = (sinEncendido ? 1 : 0) + (sinApagado ? 1 : 0) + nGruposErr;
 
   document.getElementById('err-sections').innerHTML = sectionsHtml;
 
@@ -2892,6 +3224,148 @@ function renderPieChart() {
       <span class="legend-pct">${r.count} (${r.pct.toFixed(1)}%)</span>
     </div>`).join('');
 }
+
+// ─── CÓDIGOS FALLO ───────────────────────────────────────────────────────────
+// Códigos de paquete que representan fallos (bit0=activación, bit0=0 desactivación)
+const FALLO_CODES_FEXX = new Set([
+  'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
+  'FE8E','FE8F',
+  'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
+  'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
+  'FEAA','FEAB',
+  'FEB0','FEB1','FEB2','FEB3'
+]);
+
+let ceSortCol = 'activaciones';
+let ceSortAsc = false;
+
+function renderCE() {
+  // Recoger todos los paquetes de fallo: FF06 + FExx de fallo
+  // FF06: todos los paquetes (incluyendo los que solo tienen desactivaciones)
+  // FExx: solo los que tienen al menos un evento con bit0=1 (fallo activo alguna vez)
+  const fexxConActivacion = new Set(
+    allPackets
+      .filter(p => FALLO_CODES_FEXX.has(p.code) && (p.val & 1) === 1)
+      .map(p => p.code)
+  );
+  const fallosPkts = allPackets.filter(p =>
+    p.code === 'FF06' || fexxConActivacion.has(p.code)
+  );
+
+  if (!fallosPkts.length) {
+    document.getElementById('ce-summary').innerHTML = '';
+    document.getElementById('ce-table-wrap').style.display = 'none';
+    document.getElementById('ce-empty').style.display = '';
+    return;
+  }
+  document.getElementById('ce-table-wrap').style.display = '';
+  document.getElementById('ce-empty').style.display = 'none';
+
+  // Agrupar:
+  //   FF06  → clave por código interno (bits 1–11) + fabricante (bits 12–15)
+  //   FExx  → clave por código de paquete (el propio code)
+  const map = {};
+
+  fallosPkts.forEach(p => {
+    let key, codigo, fabricante, descripcion;
+    if (p.code === 'FF06') {
+      codigo      = (p.val >> 1) & 0x7FF;
+      fabricante  = (p.val >> 12) & 0xF;
+      key         = 'FF06_' + codigo + '_' + fabricante;
+      descripcion = 'Consultar documentación fabricante';
+    } else {
+      codigo      = p.code;
+      fabricante  = '—';
+      key         = p.code;
+      descripcion = VARIABLES[p.code] || p.code;
+    }
+    if (!map[key]) map[key] = { tipo: p.code === 'FF06' ? 'FF06' : 'FExx', codigo, fabricante, descripcion, activaciones: 0, desactivaciones: 0, ultimoVal: 0 };
+    if ((p.val & 1) === 1) map[key].activaciones++;
+    else                   map[key].desactivaciones++;
+    map[key].ultimoVal = p.val & 1;
+  });
+
+  const rows      = Object.values(map);
+  const totalEvt  = fallosPkts.length;
+  const totalAct  = fallosPkts.filter(p => (p.val & 1) === 1).length;
+  const totalDesact = totalEvt - totalAct;
+  const tiposActivos = rows.filter(r => r.ultimoVal === 1).length;
+
+  // Tarjetas resumen
+  document.getElementById('ce-summary').innerHTML =
+    ceCard('Tipos de fallo distintos', rows.length, '') +
+    ceCard('Total eventos de fallo',   totalEvt,    '') +
+    ceCard('Activaciones totales',     totalAct,    'red') +
+    ceCard('Desactivaciones totales',  totalDesact, 'green') +
+
+  // Ordenar
+  rows.sort((a, b) => {
+    let av, bv;
+    const aTotal = a.activaciones + a.desactivaciones;
+    const bTotal = b.activaciones + b.desactivaciones;
+    switch (ceSortCol) {
+      case 'codigo':          av = String(a.codigo);  bv = String(b.codigo);  break;
+      case 'descripcion':     av = a.descripcion;     bv = b.descripcion;     break;
+      case 'activaciones':    av = a.activaciones;    bv = b.activaciones;    break;
+      case 'desactivaciones': av = a.desactivaciones; bv = b.desactivaciones; break;
+      case 'total':           av = aTotal;             bv = bTotal;            break;
+      case 'pct':             av = aTotal;             bv = bTotal;            break;
+      default:                av = a.activaciones;    bv = b.activaciones;
+    }
+    if (typeof av === 'string') return ceSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return ceSortAsc ? av - bv : bv - av;
+  });
+
+  const maxTotal = Math.max(...rows.map(r => r.activaciones + r.desactivaciones), 1);
+
+  const tbody = document.getElementById('ce-body');
+  tbody.innerHTML = rows.map(r => {
+    const total   = r.activaciones + r.desactivaciones;
+    const pct     = (total / totalEvt * 100).toFixed(1);
+    const actW    = Math.round(r.activaciones    / maxTotal * 100);
+    const desactW = Math.round(r.desactivaciones / maxTotal * 100);
+    // Para FF06 mostrar número con (FF06) entre paréntesis; para FExx el código hex
+    const codigoDisplay = r.tipo === 'FF06'
+      ? 'FF06 <span style="font-size:11px;color:var(--muted);font-weight:400;">(' + r.codigo + ')</span>'
+      : r.codigo;
+    const fabDisplay = r.fabricante === '—'
+      ? '<span style="color:var(--muted);">—</span>'
+      : r.fabricante;
+    return '<tr>'
+      + '<td class="ce-codigo">' + codigoDisplay + '</td>'
+      + '<td class="ce-desc">'   + r.descripcion + '</td>'
+      + '<td class="ce-act">'    + r.activaciones + '</td>'
+      + '<td class="ce-desact">' + r.desactivaciones + '</td>'
+      + '<td class="ce-total">'  + total + '</td>'
+      + '<td class="ce-pct">'    + pct + ' %</td>'
+      + '<td class="ce-bar-cell"><div class="ce-bar-wrap">'
+      +   '<div class="ce-bar-act"    style="width:' + actW    + '%"></div>'
+      +   '<div class="ce-bar-desact" style="width:' + desactW + '%"></div>'
+      + '</div></td>'
+      + '</tr>';
+  }).join('');
+
+  // Marcar columna ordenada
+  document.querySelectorAll('#ce-table thead th').forEach(th => th.classList.remove('sorted'));
+  const colMap = ['codigo','descripcion','activaciones','desactivaciones','total','pct',null,null];
+  const idx = colMap.indexOf(ceSortCol);
+  const ths = document.querySelectorAll('#ce-table thead th');
+  if (idx >= 0 && ths[idx]) ths[idx].classList.add('sorted');
+}
+
+function ceCard(label, val, color) {
+  return '<div class="stat-card">'
+    + '<div class="stat-card-label">' + label + '</div>'
+    + '<div class="stat-card-val ' + color + '">' + val + '</div>'
+    + '</div>';
+}
+
+function sortCE(col) {
+  if (ceSortCol === col) ceSortAsc = !ceSortAsc;
+  else { ceSortCol = col; ceSortAsc = false; }
+  renderCE();
+}
+
 
 </script>
 </body>
