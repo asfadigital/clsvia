@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Analizador CLS · ASFA Digital Vía</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+  /* Fuentes del sistema (sin dependencia de red) */
 
   :root {
     --bg:        #f0f2f5;
@@ -19,8 +19,8 @@
     --yellow:    #c47a00;
     --text:      #1a1e2a;
     --muted:     #6b7280;
-    --mono:      'JetBrains Mono', monospace;
-    --sans:      'Syne', sans-serif;
+    --mono:      'Consolas', 'JetBrains Mono', monospace;
+    --sans:      'Segoe UI', 'Syne', sans-serif;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -257,6 +257,129 @@
   @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
   #app.visible { animation: fadeIn .3s ease; }
 
+  /* ── PRINT / PDF ── */
+  #pdf-report { display: none; }
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    header, #dropzone, #app, #progress-overlay { display: none !important; }
+    body { background: white !important; }
+    #pdf-report {
+      display: block !important;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1e2a;
+      padding: 0;
+      margin: 0;
+    }
+    #pdf-report .pdf-header {
+      border-bottom: 3px solid #c47a00;
+      padding-bottom: 12pt;
+      margin-bottom: 20pt;
+    }
+    #pdf-report .pdf-title {
+      font-size: 18pt;
+      font-weight: bold;
+      color: #1a1e2a;
+      margin: 0 0 4pt 0;
+    }
+    #pdf-report .pdf-subtitle {
+      font-size: 10pt;
+      color: #6b7280;
+      margin: 0;
+    }
+    #pdf-report .pdf-meta {
+      display: flex;
+      gap: 24pt;
+      margin-top: 8pt;
+      font-size: 9pt;
+      color: #6b7280;
+    }
+    #pdf-report .pdf-meta span strong { color: #1a1e2a; }
+    #pdf-report .pdf-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8pt;
+      margin-bottom: 20pt;
+    }
+    #pdf-report .pdf-kpi {
+      border: 1pt solid #d0d4dc;
+      padding: 8pt 10pt;
+      text-align: center;
+    }
+    #pdf-report .pdf-kpi-val {
+      font-size: 20pt;
+      font-weight: bold;
+      color: #1a6fba;
+      line-height: 1.1;
+    }
+    #pdf-report .pdf-kpi-val.red  { color: #cc2a2a; }
+    #pdf-report .pdf-kpi-val.zero { color: #1a8a4a; }
+    #pdf-report .pdf-kpi-lbl {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5pt;
+      color: #6b7280;
+      margin-top: 3pt;
+    }
+    #pdf-report .pdf-section {
+      margin-bottom: 16pt;
+      page-break-inside: avoid;
+    }
+    #pdf-report .pdf-section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      color: #1a1e2a;
+      border-bottom: 1pt solid #d0d4dc;
+      padding-bottom: 4pt;
+      margin-bottom: 8pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    #pdf-report .pdf-section-title .pdf-count {
+      font-size: 9pt;
+      font-weight: normal;
+      color: #cc2a2a;
+    }
+    #pdf-report .pdf-section-title .pdf-count.ok { color: #1a8a4a; }
+    #pdf-report .pdf-ok {
+      color: #1a8a4a;
+      font-size: 10pt;
+      padding: 4pt 0;
+    }
+    #pdf-report table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin-top: 6pt;
+    }
+    #pdf-report table th {
+      background: #e8eaee !important;
+      border-bottom: 1pt solid #d0d4dc;
+      padding: 4pt 6pt;
+      text-align: left;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5pt;
+      color: #6b7280;
+    }
+    #pdf-report table td {
+      padding: 4pt 6pt;
+      border-bottom: 1pt solid #e8eaee;
+      vertical-align: top;
+    }
+    #pdf-report table tr.err-row { background: #fdf0f0 !important; }
+    #pdf-report .pdf-footer {
+      margin-top: 24pt;
+      border-top: 1pt solid #d0d4dc;
+      padding-top: 8pt;
+      font-size: 8pt;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+
   /* ── MULTISELECT CÓDIGO ── */
   .multiselect-wrap { position: relative; width: 220px; }
   .multiselect-trigger {
@@ -359,6 +482,29 @@
   .st-chk-ok  { color: var(--green); font-size: 12px; }
   .st-chk-err { color: var(--red);   font-size: 12px; font-weight: 700; }
 
+  /* ── DEPURACIÓN ── */
+  #dbg-content { font-family: var(--mono); font-size: 12px; }
+  .dbg-section-title { font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin: 0 0 12px; }
+  .dbg-hex-block { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 24px; overflow-x: auto; line-height: 2; }
+  .dbg-hex-row { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; }
+  .dbg-offset { color: var(--muted); font-size: 11px; min-width: 44px; }
+  .dbg-bytes { flex: 1; display: flex; flex-wrap: wrap; gap: 2px; }
+  .dbg-byte { display: inline-block; padding: 1px 3px; border-radius: 2px; font-size: 12px; cursor: default; }
+  .dbg-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .dbg-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  .dbg-legend-swatch { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+  /* Tabla paquetes depuración */
+  #dbg-pkt-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  #dbg-pkt-table thead th { background: var(--surface2); border-bottom: 2px solid var(--border); color: var(--muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 8px; text-align: left; position: sticky; top: 0; z-index: 5; }
+  #dbg-pkt-table tbody tr { border-bottom: 1px solid var(--border); }
+  #dbg-pkt-table tbody tr:hover { background: var(--surface2); }
+  #dbg-pkt-table tbody tr.dbg-chk-err { border-left: 3px solid var(--red); }
+  #dbg-pkt-table td { padding: 5px 8px; white-space: nowrap; }
+  .dbg-field-mark { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+  .dbg-chk-ok  { color: var(--green); font-weight: 600; }
+  .dbg-chk-err-cell { color: var(--red); font-weight: 700; }
+
+  /* ── CÓDIGOS ERROR ── */
   /* ── CÓDIGOS ERROR ── */
   .ce-th {
     background: var(--surface2); border-bottom: 2px solid var(--border);
@@ -701,8 +847,29 @@
 
   <!-- PESTAÑA: ERRORES DETECTADOS -->
   <div id="tab-errores" class="tab-panel">
-    <div id="err-summary"></div>
-    <div id="err-sections"></div>
+    <!-- Sub-pestañas: Errores / Depuración -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;">
+      <button class="tab-btn active" id="sub-btn-errores"   onclick="switchSubTab('errores')"   style="margin-bottom:-2px;">Errores</button>
+      <button class="tab-btn"        id="sub-btn-depuracion" onclick="switchSubTab('depuracion')" style="margin-bottom:-2px;">Depuración</button>
+    </div>
+
+    <!-- Sub-pestaña Errores -->
+    <div id="sub-errores">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div id="err-summary" style="flex:1;min-width:0;"></div>
+        <button class="btn primary" onclick="exportErrorPDF()" style="white-space:nowrap;align-self:flex-start;">
+          &#8659; Exportar informe PDF
+        </button>
+      </div>
+      <div id="err-sections"></div>
+    </div>
+
+    <!-- Sub-pestaña Depuración -->
+    <div id="sub-depuracion" style="display:none;">
+      <div id="dbg-content">
+        <div class="empty-msg">Carga un fichero para ver la depuración.</div>
+      </div>
+    </div>
   </div><!-- #tab-errores -->
 
   <!-- PESTAÑA: CÓDIGOS FALLO -->
@@ -783,6 +950,9 @@
   </div><!-- #tab-sensado -->
 
 </div><!-- #app -->
+
+<!-- PDF REPORT (hidden, shown only on print) -->
+<div id="pdf-report"></div>
 
 <script>
 // ─── VARIABLE DICTIONARY ──────────────────────────────────────────────────────
@@ -1133,6 +1303,8 @@ function interpretValue(code, val) {
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
+let rawBuf = null;  // buffer completo del fichero para depuración
+let fileNameError = null;  // error de formato del nombre del fichero
 let allPackets = [];
 let filteredPackets = [];
 let sortCol = 'num';
@@ -1152,6 +1324,72 @@ let cabeceraErrors = {
   versionError:     false,
   versionFound:     '',
 };
+
+
+// ─── HELPERS COMPARTIDOS ─────────────────────────────────────────────────────
+
+function computeEncApErrors() {
+  const ff03 = allPackets.filter(p => p.code === 'FF03');
+  const ff04 = allPackets.filter(p => p.code === 'FF04');
+  const grupos = [];
+  let enAp = false, apPkt = null, buf = [];
+  allPackets.forEach(p => {
+    if (p.code === 'FF04') {
+      if (enAp && buf.length > 0) grupos.push({ apagado: apPkt, encendido: null, pkts: [...buf] });
+      enAp = true; apPkt = p; buf = [];
+    } else if (p.code === 'FF03') {
+      if (enAp && buf.length > 0) grupos.push({ apagado: apPkt, encendido: p, pkts: [...buf] });
+      enAp = false; apPkt = null; buf = [];
+    } else if (enAp) {
+      buf.push(p);
+    }
+  });
+  if (enAp && buf.length > 0) grupos.push({ apagado: apPkt, encendido: null, pkts: [...buf] });
+  return {
+    ff03, ff04,
+    sinEncendido: ff03.length === 0,
+    sinApagado:   ff04.length === 0,
+    grupos,
+    errorCount: (ff03.length === 0 ? 1 : 0) + (ff04.length === 0 ? 1 : 0) + grupos.length
+  };
+}
+
+function computeCabErrors() {
+  const errs = [];
+  if (fileNameError) {
+    errs.push('Nombre de fichero incorrecto: <strong>' + fileNameError + '</strong>. '
+      + 'Formato esperado: <strong>AAMMDD_NNNNNN.CLS</strong>.');
+  }
+  if (cabeceraErrors.tamanoIncorrecto) {
+    errs.push('Tamaño de cabecera incorrecto: encontrado <strong>'
+      + cabeceraErrors.tamanoEncontrado + ' bytes</strong>, esperado <strong>72 bytes</strong>.');
+  } else {
+    if (cabeceraErrors.crcError) {
+      const variants = rawBuf
+        ? CRC_VARIANTS.map(v =>
+            v.name + ': 0x' + toHex(calcCRC16(rawBuf, 2, rawBuf.length, v.poly, v.init, v.refIn, v.refOut, v.xorOut))
+          ).join(' | ')
+        : '';
+      errs.push('CRC incorrecto: almacenado <strong>0x' + toHex(cabeceraErrors.crcStored)
+        + '</strong>. Ninguna de las ' + CRC_VARIANTS.length + ' variantes coincide.'
+        + (variants ? ' <span style="font-size:11px;color:var(--muted);">' + variants + '</span>' : ''));
+    }
+    if (cabeceraErrors.chkHdrError) {
+      errs.push('Checksum de cabecera incorrecto: almacenado <strong>0x'
+        + toHex(cabeceraErrors.chkHdrStored) + '</strong>, calculado <strong>0x'
+        + toHex(cabeceraErrors.chkHdrCalc) + '</strong>.');
+    }
+    if (cabeceraErrors.versionError) {
+      errs.push('Versión de formato incorrecta: encontrado <strong>'
+        + cabeceraErrors.versionFound + '</strong>, esperado <strong>65h + 1Eh</strong> (versión A-30).');
+    }
+  }
+  return errs;
+}
+
+function computeFailureMap() {
+  return computeFailureMap();
+}
 
 // ─── FILE INPUT ───────────────────────────────────────────────────────────────
 const dropzone = document.getElementById('dropzone');
@@ -1242,14 +1480,27 @@ function resetApp() {
   document.getElementById('f-code-label').textContent = 'Todos';
   document.getElementById('f-code-list').innerHTML    = '';
 
+  rawBuf = null;
+  fileNameError = null;
+
   // ── Cabecera errors reset ──
-  cabeceraErrors = { tamanoIncorrecto: false, tamanoEncontrado: 0, crcError: false, crcStored: 0, crcCalc: 0, chkHdrError: false, chkHdrStored: 0, chkHdrCalc: 0, versionError: false, versionFound: '' };
+  cabeceraErrors = { tamanoIncorrecto: false, tamanoEncontrado: 0, crcError: false, crcStored: 0, crcCalc: 0, crcVariant: null, chkHdrError: false, chkHdrStored: 0, chkHdrCalc: 0, versionError: false, versionFound: '' };
 
   // ── Pestaña Códigos Error ──
   document.getElementById('ce-summary').innerHTML  = '';
   document.getElementById('ce-body').innerHTML     = '';
   document.getElementById('ce-empty').style.display = 'none';
   document.getElementById('ce-table-wrap').style.display = '';
+
+  // ── Reset sub-pestaña errores/depuración ──
+  const subE = document.getElementById('sub-errores');
+  const subD = document.getElementById('sub-depuracion');
+  if (subE) subE.style.display = '';
+  if (subD) subD.style.display = 'none';
+  const btnE = document.getElementById('sub-btn-errores');
+  const btnD = document.getElementById('sub-btn-depuracion');
+  if (btnE) { btnE.classList.add('active'); }
+  if (btnD) { btnD.classList.remove('active'); }
 
   // ── Volver a la pestaña Paquetes ──
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -1322,17 +1573,58 @@ function fondoDesc() {
   return parts.length ? ' (' + parts.join(', ') + ')' : '';
 }
 
-function crcCCITT(buf, from, to) {
-  // Polynomial X^16+X^12+X^5+1
-  let crc = 0xFFFF;
+// ─── CRC helpers ──────────────────────────────────────────────────────────────
+function reflectByte(b) {
+  let r = 0;
+  for (let i = 0; i < 8; i++) if (b & (1 << i)) r |= (1 << (7 - i));
+  return r & 0xFF;
+}
+function reflectU16(v) {
+  let r = 0;
+  for (let i = 0; i < 16; i++) if (v & (1 << i)) r |= (1 << (15 - i));
+  return r & 0xFFFF;
+}
+
+function calcCRC16(buf, from, to, poly, init, refIn, refOut, xorOut) {
+  let crc = init;
   for (let i = from; i < to; i++) {
-    crc ^= (buf[i] << 8);
+    const byte = refIn ? reflectByte(buf[i]) : buf[i];
+    crc ^= (byte << 8);
     for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc = (crc & 0x8000) ? ((crc << 1) ^ poly) : (crc << 1);
       crc &= 0xFFFF;
     }
   }
-  return crc;
+  return ((refOut ? reflectU16(crc) : crc) ^ xorOut) & 0xFFFF;
+}
+
+// Todas las variantes CRC-16 relevantes para ficheros ASFA/CLS
+const CRC_VARIANTS = [
+  { name: 'CRC-CCITT/FALSE',   poly: 0x1021, init: 0xFFFF, refIn: false, refOut: false, xorOut: 0x0000 },
+  { name: 'CRC-CCITT/XMODEM',  poly: 0x1021, init: 0x0000, refIn: false, refOut: false, xorOut: 0x0000 },
+  { name: 'CRC-CCITT/AUG',     poly: 0x1021, init: 0x1D0F, refIn: false, refOut: false, xorOut: 0x0000 },
+  { name: 'CRC-CCITT/KERMIT',  poly: 0x1021, init: 0x0000, refIn: true,  refOut: true,  xorOut: 0x0000 },
+  { name: 'CRC-CCITT/MCRF4XX', poly: 0x1021, init: 0xFFFF, refIn: true,  refOut: true,  xorOut: 0x0000 },
+  { name: 'CRC-16/IBM',        poly: 0x8005, init: 0x0000, refIn: true,  refOut: true,  xorOut: 0x0000 },
+  { name: 'CRC-16/MAXIM',      poly: 0x8005, init: 0x0000, refIn: true,  refOut: true,  xorOut: 0xFFFF },
+  { name: 'CRC-16/USB',        poly: 0x8005, init: 0xFFFF, refIn: true,  refOut: true,  xorOut: 0xFFFF },
+  { name: 'CRC-16/BUYPASS',    poly: 0x8005, init: 0x0000, refIn: false, refOut: false, xorOut: 0x0000 },
+  { name: 'CRC-16/CDMA2000',   poly: 0xC867, init: 0xFFFF, refIn: false, refOut: false, xorOut: 0x0000 },
+  { name: 'CRC-16/DNP',        poly: 0x3D65, init: 0x0000, refIn: true,  refOut: true,  xorOut: 0xFFFF },
+];
+
+// Mantener compatibilidad con llamadas antiguas a crcCCITT
+function crcCCITT(buf, from, to) {
+  return calcCRC16(buf, from, to, 0x1021, 0xFFFF, false, false, 0x0000);
+}
+
+// Calcula todas las variantes y devuelve la que coincide con stored, o null
+function crcFindMatch(buf, from, to, stored) {
+  for (const v of CRC_VARIANTS) {
+    const calc = calcCRC16(buf, from, to, v.poly, v.init, v.refIn, v.refOut, v.xorOut);
+    if (calc === stored) return { ...v, calc };
+  }
+  return null;
 }
 
 function calcChecksumHeader(buf) {
@@ -1360,6 +1652,13 @@ function calcChecksumPacket(buf, off, pktSz) {
 const HDR_SIZE = 72; // Tamaño fijo de cabecera según ET: 72 bytes
 
 function parseCLS(buf, file) {
+  rawBuf = buf; // guardar para pestaña depuración
+
+  // ── Validación del nombre del fichero ─────────────────────────────────
+  // Formato esperado: AAMMDD_NNNNNN.CLS
+  // AA=año(2), MM=mes(2), DD=día(2), _=guion bajo, NNNNNN=6 alfanuméricos, .CLS
+  const FILE_NAME_RE = /^\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])_[A-Za-z0-9]{6}\.CLS$/i;
+  fileNameError = FILE_NAME_RE.test(file.name) ? null : file.name;
 
   // ── VALIDACIÓN DE TAMAÑO DE CABECERA ──────────────────────────────────────
   // La cabecera son los bytes desde el inicio hasta el primer paquete (marca 0xDCBA).
@@ -1525,6 +1824,14 @@ function parseCLS(buf, file) {
   const fechaUC    = readU32LE(buf, 4);
   const configUC   = readU16LE(buf, 8);
   const configSis  = readU16LE(buf, 10);
+  // ID usuario: 4 bytes BCD en offset 12 → 8 dígitos decimales
+  const idUsuarioRaw = readU32LE(buf, 12);
+  // Decodificar BCD: cada nibble es un dígito decimal
+  const idUsuarioBCD = (() => {
+    let s = '';
+    for (let i = 7; i >= 0; i--) s += (idUsuarioRaw >> (i * 4)) & 0xF;
+    return s.replace(/^0+/, '') || '0';
+  })();
   const idTexto    = String.fromCharCode(buf[16],buf[17],buf[18],buf[19],buf[20]).replace(/\0/g,'').trim();
   const idNum      = readU16LE(buf, 21);
   const tipoSenal  = buf[23];
@@ -1561,8 +1868,11 @@ function parseCLS(buf, file) {
   });
   const numPkts2   = readU32LE(buf, 66);
   const chkHdr2    = readU16LE(buf, 70);
-  const crc_calc   = crcCCITT(buf, 2, buf.length);
-  const crcOk      = (crc_stored === crc_calc);
+  // Probar todas las variantes CRC
+  const crcMatch   = crcFindMatch(buf, 2, buf.length, crc_stored);
+  const crc_calc   = crcMatch ? crcMatch.calc : calcCRC16(buf, 2, buf.length, 0x1021, 0xFFFF, false, false, 0x0000);
+  const crcOk      = crcMatch !== null;
+  const crcVariant = crcMatch ? crcMatch.name : null;
   const chkHdrCalc = calcChecksumHeader(buf);
   const chkHdrOk   = (chkHdr2 === chkHdrCalc);
 
@@ -1573,6 +1883,7 @@ function parseCLS(buf, file) {
     crcError:     !crcOk,
     crcStored:    crc_stored,
     crcCalc:      crc_calc,
+    crcVariant:   crcVariant,
     chkHdrError:  !chkHdrOk,
     chkHdrStored: chkHdr2,
     chkHdrCalc:   chkHdrCalc,
@@ -1596,12 +1907,13 @@ function parseCLS(buf, file) {
     </div>`;
 
   cab.innerHTML = `${chkWarning}
-    <div class="cab-row"><span class="cab-key">CRC-CCITT almacenado</span><span class="cab-val">${toHex(crc_stored)}</span></div>
-    <div class="cab-row"><span class="cab-key">CRC calculado</span><span class="cab-val ${crcOk?'good':'bad'}">${toHex(crc_calc)} ${crcOk?'✓ OK':'✗ ERROR'}</span></div>
+    <div class="cab-row"><span class="cab-key">CRC almacenado</span><span class="cab-val">${toHex(crc_stored)}</span></div>
+    <div class="cab-row"><span class="cab-key">CRC calculado</span><span class="cab-val ${crcOk?'good':'bad'}">${toHex(crc_calc)} ${crcOk ? '✓ OK (' + crcVariant + ')' : '✗ ERROR — ninguna variante coincide'}</span></div>
     <div class="cab-row"><span class="cab-key">Checksum cabecera almacenado</span><span class="cab-val">${toHex(chkHdr2)}</span></div>
     <div class="cab-row"><span class="cab-key">Checksum cabecera calculado</span><span class="cab-val ${chkHdrOk?'good':'bad'}">${toHex(chkHdrCalc)} ${chkHdrOk?'✓ OK':'✗ ERROR'}</span></div>
     <div class="cab-row"><span class="cab-key">Versión formato registro</span><span class="cab-val ${buf[2]===0x65 && buf[3]===0x1E ? 'good' : 'bad'}">${buf[2]===0x65 && buf[3]===0x1E ? `A-30 (65h + 1Eh) ✓` : `Error — encontrado: ${toHex(buf[2],2)}h + ${toHex(buf[3],2)}h, esperado: 65h + 1Eh`}</span></div>
     <div class="cab-row"><span class="cab-key">Fecha instalación UC</span><span class="cab-val">${formatUnix(fechaUC)}</span></div>
+    <div class="cab-row"><span class="cab-key">ID usuario</span><span class="cab-val highlight">${idUsuarioBCD} (0x${toHex(idUsuarioRaw, 8)})</span></div>
     <div class="cab-row"><span class="cab-key">ID texto señal</span><span class="cab-val highlight">${idTexto || '—'}</span></div>
     <div class="cab-row"><span class="cab-key">ID numérico señal</span><span class="cab-val">${idNum}</span></div>
     <div class="cab-row"><span class="cab-key">Tipo señal (código)</span><span class="cab-val">${toHex(tipoSenal,2)} — ${TIPO_SENAL[tipoS]||'?'}</span></div>
@@ -1640,7 +1952,7 @@ function parseCLS(buf, file) {
   document.getElementById('fi-size').textContent   = (file.size / 1024).toFixed(1) + ' KB';
   document.getElementById('fi-pkts').textContent   = `${numPkts2} declarados / ${allPackets.length} leídos` + (pktsMismatch ? ' ⚠' : ' ✓');
   document.getElementById('fi-pkts').closest('.fi-item').querySelector('.fi-val').className = 'fi-val ' + (pktsMismatch ? 'bad' : '');
-  document.getElementById('fi-crc').textContent    = crcOk ? '✓ OK' : '✗ ERROR';
+  document.getElementById('fi-crc').textContent    = crcOk ? '✓ OK (' + crcVariant + ')' : '✗ ERROR';
   document.getElementById('fi-crc').className      = 'fi-val ' + (crcOk ? 'good' : 'bad');
   document.getElementById('fi-signal').textContent = idTexto || '—';
   numPktsDeclarado = numPkts2;
@@ -1655,7 +1967,18 @@ function parseCLS(buf, file) {
     renderTable();
     updateErrorBadge();
     hideProgress();
+    syncTableHeight();
   }, 30);
+}
+
+function syncTableHeight() {
+  const cab = document.getElementById('panel-cabecera');
+  const tbl = document.querySelector('.tbl-wrap');
+  if (!cab || !tbl) return;
+  const cabHeight = cab.offsetHeight;
+  if (cabHeight > 200) {
+    tbl.style.maxHeight = cabHeight + 'px';
+  }
 }
 
 function renderBits(val, labels) {
@@ -1874,7 +2197,6 @@ function toggleCode(code, checked) {
   if (item) item.classList.toggle('checked', checked);
 
   updateCodeLabel();
-  applyFilters();
 }
 
 function selectAllCodes(e) {
@@ -1885,7 +2207,6 @@ function selectAllCodes(e) {
     item.querySelector('input').checked = true;
   });
   updateCodeLabel();
-  applyFilters();
 }
 
 function selectNoneCodes(e) {
@@ -1896,7 +2217,6 @@ function selectNoneCodes(e) {
     item.querySelector('input').checked = false;
   });
   updateCodeLabel();
-  applyFilters();
 }
 
 function updateCodeLabel() {
@@ -2010,6 +2330,8 @@ function applyFilters() {
     if (fPktTo   !== null && p.num > fPktTo)   return false;
     return true;
   });
+  const tblWrap = document.querySelector('.tbl-wrap');
+  if (tblWrap) tblWrap.scrollTop = 0;
   renderTable();
 }
 
@@ -2090,6 +2412,25 @@ function switchTab(name, btn) {
   if (name === 'codigoserror') renderCE();
 }
 
+function switchSubTab(name) {
+  const subErrores    = document.getElementById('sub-errores');
+  const subDepuracion = document.getElementById('sub-depuracion');
+  const btnErr = document.getElementById('sub-btn-errores');
+  const btnDbg = document.getElementById('sub-btn-depuracion');
+  if (name === 'errores') {
+    subErrores.style.display    = '';
+    subDepuracion.style.display = 'none';
+    btnErr.classList.add('active');
+    btnDbg.classList.remove('active');
+  } else {
+    subErrores.style.display    = 'none';
+    subDepuracion.style.display = '';
+    btnErr.classList.remove('active');
+    btnDbg.classList.add('active');
+    renderDebug();
+  }
+}
+
 // ─── ERRORES DETECTADOS ───────────────────────────────────────────────────────
 function countJumpErrors() {
   let count = 0;
@@ -2116,34 +2457,16 @@ function hasPktCountMismatch() {
 }
 
 function updateErrorBadge() {
-  const falloCodesSetB = new Set([
-    'FF06',
-    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
-    'FE8E','FE8F',
-    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
-    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
-    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
-  ]);
-  const cabErrCount = (cabeceraErrors.tamanoIncorrecto ? 1 : 0)
+  const falloCodesSetB = FALLO_CODES_ALL;
+  const fileNameErrCount = fileNameError !== null ? 1 : 0;
+  const cabErrCount = (fileNameError ? 1 : 0)
+    + (cabeceraErrors.tamanoIncorrecto ? 1 : 0)
     + (cabeceraErrors.crcError     ? 1 : 0)
     + (cabeceraErrors.chkHdrError  ? 1 : 0)
     + (cabeceraErrors.versionError ? 1 : 0);
   const hasFallos = allPackets.some(p => falloCodesSetB.has(p.code)) ? 1 : 0;
-  const _b03 = allPackets.filter(p => p.code === 'FF03').length;
-  const _b04 = allPackets.filter(p => p.code === 'FF04').length;
-  let _bEncAp = (_b03 === 0 ? 1 : 0) + (_b04 === 0 ? 1 : 0);
-  let _bInAp = false, _bBuf = 0;
-  allPackets.forEach(p => {
-    if (p.code === 'FF04') {
-      if (_bInAp && _bBuf > 0) _bEncAp++;
-      _bInAp = true; _bBuf = 0;
-    } else if (p.code === 'FF03') {
-      if (_bInAp && _bBuf > 0) _bEncAp++;
-      _bInAp = false; _bBuf = 0;
-    } else if (_bInAp) _bBuf++;
-  });
-  if (_bInAp && _bBuf > 0) _bEncAp++;
-  const n = cabErrCount + countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0) + hasFallos + _bEncAp;
+  const _bEncAp = computeEncApErrors().errorCount;
+  const n = fileNameErrCount + cabErrCount + countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0) + hasFallos + _bEncAp;
   const tabBtn = document.getElementById('tab-btn-errores');
   tabBtn.textContent = n > 0 ? `Errores Detectados (${n})` : 'Errores Detectados';
   tabBtn.style.color = n > 0 ? 'var(--red)' : '';
@@ -2152,25 +2475,12 @@ function updateErrorBadge() {
 function renderErrors() {
   if (!allPackets.length) return;
 
+  // ── -1. Nombre de fichero ────────────────────────────────────────────────────
+  const fileNameOk = fileNameError === null;
+
+  // ── 0a. Error de nombre de fichero ──────────────────────────────────────────
   // ── 0. Errores de cabecera ──────────────────────────────────────────────────
-  const cabErrs = [];
-  if (cabeceraErrors.tamanoIncorrecto) {
-    cabErrs.push('Tamaño de cabecera incorrecto: encontrado <strong>' + cabeceraErrors.tamanoEncontrado
-      + ' bytes</strong>, esperado <strong>72 bytes</strong>. No se pueden leer los campos de cabecera.');
-  } else {
-    if (cabeceraErrors.crcError) {
-      cabErrs.push('CRC-CCITT incorrecto: almacenado <strong>0x' + toHex(cabeceraErrors.crcStored)
-        + '</strong>, calculado <strong>0x' + toHex(cabeceraErrors.crcCalc) + '</strong>.');
-    }
-    if (cabeceraErrors.chkHdrError) {
-      cabErrs.push('Checksum de cabecera incorrecto: almacenado <strong>0x' + toHex(cabeceraErrors.chkHdrStored)
-        + '</strong>, calculado <strong>0x' + toHex(cabeceraErrors.chkHdrCalc) + '</strong>.');
-    }
-    if (cabeceraErrors.versionError) {
-      cabErrs.push('Versión de formato incorrecta: encontrado <strong>' + cabeceraErrors.versionFound
-        + '</strong>, esperado <strong>65h + 1Eh</strong> (versión A-30).');
-    }
-  }
+  const cabErrs = computeCabErrors();
 
   // ── 1. Saltos temporales hacia atrás ──────────────────────────────────────
   const jumpErrors = [];
@@ -2203,35 +2513,20 @@ function renderErrors() {
 
   // ── Resumen ───────────────────────────────────────────────────────────────
   // Total paquetes de códigos de fallo (FF06 + FExx)
-  const falloCodesSet = new Set([
-    'FF06',
-    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
-    'FE8E','FE8F',
-    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
-    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
-    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
-  ]);
+  const falloCodesSet = FALLO_CODES_ALL;
   const totalFalloPkts = allPackets.filter(p => falloCodesSet.has(p.code)).length;
 
-  // Pre-compute encendido/apagado error count for totalErrors
-  const _ff03n = allPackets.filter(p => p.code === 'FF03').length;
-  const _ff04n = allPackets.filter(p => p.code === 'FF04').length;
-  let _encApErr = (_ff03n === 0 ? 1 : 0) + (_ff04n === 0 ? 1 : 0);
-  // count groups of packets after FF04 without prior FF03 (including end-of-file)
-  let _inAp2 = false, _buf2 = 0;
-  allPackets.forEach(p => {
-    if (p.code === 'FF04') {
-      if (_inAp2 && _buf2 > 0) _encApErr++;
-      _inAp2 = true; _buf2 = 0;
-    } else if (p.code === 'FF03') {
-      if (_inAp2 && _buf2 > 0) _encApErr++;
-      _inAp2 = false; _buf2 = 0;
-    } else if (_inAp2) _buf2++;
-  });
-  if (_inAp2 && _buf2 > 0) _encApErr++;
-  const totalErrors = cabErrs.length + jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1) + (totalFalloPkts > 0 ? 1 : 0) + _encApErr;
+  const _encAp = computeEncApErrors();
+  const _encApErr = _encAp.errorCount;
+  const totalErrors = (fileNameOk ? 0 : 1) + cabErrs.length + jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1) + (totalFalloPkts > 0 ? 1 : 0) + _encApErr;
   document.getElementById('err-summary').innerHTML = `
     <div class="err-summary-bar">
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${fileNameOk ? 'zero' : ''}">${fileNameOk ? 0 : 1}</div>
+          <div class="err-name">Nombre de fichero</div>
+        </div>
+      </div>
       <div class="err-badge">
         <div>
           <div class="err-count ${cabErrs.length === 0 ? 'zero' : ''}">${cabErrs.length}</div>
@@ -2272,6 +2567,25 @@ function renderErrors() {
 
   // ── Secciones ─────────────────────────────────────────────────────────────
   let sectionsHtml = '';
+
+  // Sección -1: nombre de fichero
+  const fnTitle = fileNameOk
+    ? '<div class="err-section-title ok">Nombre de fichero <span class="err-section-count">0</span></div>'
+    : '<div class="err-section-title">Nombre de fichero <span class="err-section-count">1</span></div>';
+
+  if (fileNameOk) {
+    sectionsHtml += '<div class="err-section">' + fnTitle
+      + '<div class="err-none">&#10003; El nombre del fichero cumple el formato esperado <code>AAMMDD_NNNNNN.CLS</code>.</div></div>';
+  } else {
+    sectionsHtml += '<div class="err-section">' + fnTitle
+      + '<p style="font-size:12px;color:var(--muted);margin-bottom:8px;">'
+      + 'El formato esperado es <code>AAMMDD_NNNNNN.CLS</code> donde AA=año, MM=mes, DD=día (2 dígitos) '
+      + 'y NNNNNN=6 dígitos de identificación del conjunto de balizas.</p>'
+      + '<table style="width:100%;border-collapse:collapse;">'
+      + '<tbody><tr class="err-row-highlight">'
+      + '<td style="padding:8px 12px;font-size:13px;">⚠ Nombre encontrado: <strong>' + (fileNameError || '') + '</strong></td>'
+      + '</tr></tbody></table></div>';
+  }
 
   // Sección 0: errores de cabecera
   const cabTitle = cabErrs.length > 0
@@ -2369,14 +2683,7 @@ function renderErrors() {
   }
 
   // ── Sección 4: Códigos de fallo registrados ─────────────────────────────
-  const falloCodesSetE = new Set([
-    'FF06',
-    'FE80','FE81','FE82','FE83','FE84','FE85','FE86','FE87','FE88',
-    'FE8E','FE8F',
-    'FE90','FE91','FE92','FE93','FE94','FE95','FE96','FE97','FE98','FE99',
-    'FEA0','FEA1','FEA2','FEA3','FEA4','FEA5','FEA6','FEA7','FEA8','FEA9',
-    'FEAA','FEAB','FEB0','FEB1','FEB2','FEB3'
-  ]);
+  const falloCodesSetE = FALLO_CODES_ALL;
   const nFalloPkts = allPackets.filter(p => falloCodesSetE.has(p.code)).length;
   const falloTitle = nFalloPkts === 0
     ? '<div class="err-section-title ok">Códigos de fallo registrados <span class="err-section-count">0</span></div>'
@@ -2395,41 +2702,7 @@ function renderErrors() {
   // Regla: los paquetes solo pueden aparecer tras un FF03 (encendido).
   // Cualquier paquete tras un FF04 (apagado) sin FF03 posterior es un error,
   // incluyendo los que quedan al final del fichero tras el último FF04.
-  const ff03Pkts = allPackets.filter(p => p.code === 'FF03');
-  const ff04Pkts = allPackets.filter(p => p.code === 'FF04');
-  const sinEncendido = ff03Pkts.length === 0;
-  const sinApagado   = ff04Pkts.length === 0;
-
-  // Recorrer todos los paquetes: acumular los que aparecen tras FF04 sin FF03 previo
-  const gruposTrasFf04 = [];  // cada grupo: { apagado, encendido|null, pkts[] }
-  let enApagado  = false;
-  let apagadoPkt = null;
-  let bufAp      = [];
-
-  allPackets.forEach(p => {
-    if (p.code === 'FF04') {
-      // Si ya estábamos en apagado con paquetes, cerrar grupo anterior
-      if (enApagado && bufAp.length > 0) {
-        gruposTrasFf04.push({ apagado: apagadoPkt, encendido: null, pkts: [...bufAp] });
-      }
-      enApagado  = true;
-      apagadoPkt = p;
-      bufAp      = [];
-    } else if (p.code === 'FF03') {
-      if (enApagado && bufAp.length > 0) {
-        gruposTrasFf04.push({ apagado: apagadoPkt, encendido: p, pkts: [...bufAp] });
-      }
-      enApagado  = false;
-      apagadoPkt = null;
-      bufAp      = [];
-    } else if (enApagado) {
-      bufAp.push(p);
-    }
-  });
-  // Paquetes tras el último FF04 sin FF03 posterior
-  if (enApagado && bufAp.length > 0) {
-    gruposTrasFf04.push({ apagado: apagadoPkt, encendido: null, pkts: [...bufAp] });
-  }
+  const { ff03: ff03Pkts, ff04: ff04Pkts, sinEncendido, sinApagado, grupos: gruposTrasFf04 } = computeEncApErrors();
 
   const nGruposErr   = gruposTrasFf04.length;
   const nPktsTrasFf04 = gruposTrasFf04.reduce((s, g) => s + g.pkts.length, 0);
@@ -3235,6 +3508,7 @@ const FALLO_CODES_FEXX = new Set([
   'FEAA','FEAB',
   'FEB0','FEB1','FEB2','FEB3'
 ]);
+const FALLO_CODES_ALL = new Set(['FF06', ...FALLO_CODES_FEXX]);
 
 let ceSortCol = 'activaciones';
 let ceSortAsc = false;
@@ -3365,6 +3639,481 @@ function sortCE(col) {
   else { ceSortCol = col; ceSortAsc = false; }
   renderCE();
 }
+
+
+// ─── EXPORTAR INFORME PDF DE ERRORES ─────────────────────────────────────────
+function exportErrorPDF() {
+  // Asegurarse de que los errores están calculados
+  const report = document.getElementById('pdf-report');
+
+  // ── Datos del fichero ────────────────────────────────────────────────────
+  const fileName  = document.getElementById('fi-name').textContent  || '—';
+  const fileSize  = document.getElementById('fi-size').textContent  || '—';
+  const fiPkts    = document.getElementById('fi-pkts').textContent  || '—';
+  const fiSignal  = document.getElementById('fi-signal').textContent || '—';
+  const now       = new Date().toLocaleString('es-ES', { timeZone: 'UTC' }) + ' UTC';
+
+  // ── Recalcular todos los errores ─────────────────────────────────────────
+  // 0. Cabecera
+  const cabErrs = computeCabErrors().map(e => e.replace(/<[^>]+>/g, ''));
+
+  // 1. Saltos temporales
+  const jumpErrors = [];
+  let prevPkt = null;
+  allPackets.forEach(p => {
+    if (!p.ts) { prevPkt = null; return; }
+    if (prevPkt) {
+      const tPrev = prevPkt.ts * 1000 + prevPkt.ms;
+      const tCurr = p.ts      * 1000 + p.ms;
+      if (tCurr < tPrev) jumpErrors.push({ numPrev: prevPkt.num, tsPrev: prevPkt.tsDate ? prevPkt.tsDate.toISOString().replace('T',' ').slice(0,19) : '—', msPrev: prevPkt.ms, numCurr: p.num, tsCurr: p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '—', msCurr: p.ms, deltaMs: tCurr - tPrev });
+    }
+    prevPkt = p;
+  });
+
+  // 2. Numeración
+  const numConsecOk = !hasNonConsecutiveNums();
+
+  // 3. Discrepancia paquetes
+  const pktCountOk = !hasPktCountMismatch();
+
+  // 4. Fallos
+  const falloCodesSetP = FALLO_CODES_ALL;
+  const nFalloPktsP = allPackets.filter(p => falloCodesSetP.has(p.code)).length;
+
+  // 4. Fallos — tabla por tipo
+  let sec4Body = '';
+  if (nFalloPktsP === 0) {
+    sec4Body = pdfOk('No se han registrado paquetes de c\u00f3digos de fallo.');
+  } else {
+    const rowsP    = computeFailureMap();
+    const totalEvtP = rowsP.reduce((s, r) => s + r.act + r.desact, 0);
+    sec4Body = '<p style="margin:0 0 6pt;font-size:9pt;">Existe registro de <strong>'
+      + nFalloPktsP + '</strong> paquete(s) de c\u00f3digos de fallo en <strong>'
+      + rowsP.length + '</strong> tipo(s) distintos.</p>';
+    sec4Body += pdfTable(
+      ['C\u00f3digo', 'Descripci\u00f3n', 'Activaciones', 'Desactivaciones', 'Total', '% s/total'],
+      rowsP.map(r => {
+        const total = r.act + r.desact;
+        const pct   = (total / totalEvtP * 100).toFixed(1) + ' %';
+        const cod   = r.tipo === 'FF06' ? 'FF06 (' + r.codigo + ')' : r.codigo;
+        return [cod, r.descripcion, r.act, r.desact, total, pct];
+      })
+    );
+  }
+  const sec4 = pdfSection('Paquetes de c\u00f3digos de fallo registrados', nFalloPktsP > 0 ? 1 : 0, sec4Body);
+
+  // 5. Encendido/Apagado
+  const { ff03: ff03P, ff04: ff04P, sinEncendido: sinEnc, sinApagado: sinAp, grupos: gruposAp } = computeEncApErrors();
+
+  // Sección 5: encendido/apagado
+  let encApBody = '';
+  if (!sinEnc && !sinAp && gruposAp.length === 0) {
+    encApBody = pdfOk('Secuencia de encendido/apagado correcta. ' + ff03P.length + ' encendido(s) y ' + ff04P.length + ' apagado(s) registrados.');
+  } else {
+    if (sinEnc) encApBody += '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">⚠ No se ha registrado ningún paquete de encendido (FF03).</p>';
+    else        encApBody += '<p style="margin:2pt 0;font-size:9pt;">✓ ' + ff03P.length + ' paquete(s) de encendido (FF03) registrados.</p>';
+    if (sinAp)  encApBody += '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">⚠ No se ha registrado ningún paquete de apagado (FF04).</p>';
+    else        encApBody += '<p style="margin:2pt 0;font-size:9pt;">✓ ' + ff04P.length + ' paquete(s) de apagado (FF04) registrados.</p>';
+    if (gruposAp.length > 0) {
+      const nPktsAp = gruposAp.reduce((s,g) => s + g.pkts.length, 0);
+      encApBody += '<p style="margin:6pt 0 4pt;font-size:9pt;">Se han detectado <strong>' + nPktsAp + '</strong> paquete(s) tras un apagado sin encendido previo en <strong>' + gruposAp.length + '</strong> intervalo(s):</p>';
+      encApBody += pdfTable(
+        ['#', 'Apagado (FF04)', 'Siguiente encendido (FF03)', 'Paquetes', 'Códigos'],
+        gruposAp.map((g, i) => {
+          const tsAp = g.apagado.tsDate ? g.apagado.tsDate.toISOString().replace('T',' ').slice(0,19) : '—';
+          const tsEn = g.encendido ? (g.encendido.tsDate ? g.encendido.tsDate.toISOString().replace('T',' ').slice(0,19) : '—') : 'Sin FF03 posterior';
+          return [i+1, '#' + g.apagado.num + ' — ' + tsAp, g.encendido ? '#' + g.encendido.num + ' — ' + tsEn : tsEn, g.pkts.length, [...new Set(g.pkts.map(p => p.code))].join(', ')];
+        })
+      );
+    }
+  }
+  const encApCount = (sinEnc ? 1 : 0) + (sinAp ? 1 : 0) + gruposAp.length;
+  const sec5 = pdfSection('Encendido / Apagado', encApCount, encApBody);
+
+  // ── Montar el informe ───────────────────────────────────────────────────
+  report.innerHTML =
+    '<div class="pdf-header">'
+    + '<div class="pdf-title">Informe de Errores Detectados</div>'
+    + '<div class="pdf-subtitle">Analizador CLS · ASFA Digital Vía · ET 03.365.003.7</div>'
+    + '<div class="pdf-meta">'
+    + '<span><strong>Fichero:</strong> ' + fileName + '</span>'
+    + '<span><strong>Tamaño:</strong> ' + fileSize + '</span>'
+    + '<span><strong>Paquetes:</strong> ' + fiPkts + '</span>'
+    + '<span><strong>Señal:</strong> ' + fiSignal + '</span>'
+    + '<span><strong>Generado:</strong> ' + now + '</span>'
+    + '</div>'
+    + '</div>'
+    + '<div class="pdf-summary-grid">' + kpisHtml + '</div>'
+    + sec0 + sec1 + sec2 + sec3 + sec4 + sec5
+    + '<div class="pdf-footer">'
+    + '<span>Analizador CLS · ASFA Digital Vía</span>'
+    + '<span>Total errores detectados: <strong>' + totalErrors + '</strong></span>'
+    + '</div>';
+
+  // Imprimir / guardar como PDF — el título de la pestaña se usa como nombre por defecto
+  const originalTitle = document.title;
+  const baseName = fileName.replace(/\.[^.]+$/, '');  // quitar extensión .CLS
+  document.title = baseName;
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { document.title = originalTitle; }, 1000);
+  }, 100);
+}
+
+
+// ─── DEPURACIÓN ───────────────────────────────────────────────────────────────
+
+// Definición de campos de la cabecera con offset, longitud, nombre y color
+const HDR_FIELDS = [
+  { off:  0, len: 2,  name: 'CRC-CCITT',              color: '#e57373' },
+  { off:  2, len: 1,  name: 'Versión (letra)',         color: '#f48c42' },
+  { off:  3, len: 1,  name: 'Tamaño paquete',          color: '#f4c430' },
+  { off:  4, len: 4,  name: 'Fecha instalación UC',    color: '#81c784' },
+  { off:  8, len: 2,  name: 'Config UC',               color: '#4db6ac' },
+  { off: 10, len: 2,  name: 'Config Sistema',          color: '#64b5f6' },
+  { off: 12, len: 4,  name: 'ID usuario BCD',          color: '#9575cd' },
+  { off: 16, len: 5,  name: 'ID texto señal',          color: '#f06292' },
+  { off: 21, len: 2,  name: 'ID numérico señal',       color: '#a1887f' },
+  { off: 23, len: 1,  name: 'Tipo señal',              color: '#90a4ae' },
+  { off: 24, len: 1,  name: 'Tipo focos',              color: '#aed581' },
+  { off: 25, len: 2,  name: 'Nº serie UC',             color: '#4dd0e1' },
+  { off: 27, len: 4,  name: 'SW Control UC',           color: '#ffb74d' },
+  { off: 31, len: 4,  name: 'SW Config UC',            color: '#ce93d8' },
+  { off: 35, len: 1,  name: 'Fabricante UC',           color: '#80cbc4' },
+  { off: 36, len: 2,  name: 'ID Sistema',              color: '#ef9a9a' },
+  { off: 38, len: 7,  name: 'Baliza 1',                color: '#ffe082' },
+  { off: 45, len: 7,  name: 'Baliza 2',                color: '#a5d6a7' },
+  { off: 52, len: 7,  name: 'Baliza 3',                color: '#90caf9' },
+  { off: 59, len: 7,  name: 'Baliza 4',                color: '#f48fb1' },
+  { off: 66, len: 4,  name: 'Nº paquetes',             color: '#b0bec5' },
+  { off: 70, len: 2,  name: 'Checksum cabecera',       color: '#ffcc80' },
+];
+
+// Packet field offsets (relative to packet start)
+const PKT_FIELDS = [
+  { off: 0,  len: 2,  name: 'Marca',     color: '#ef9a9a' },
+  { off: 2,  len: 4,  name: 'Nº paq.',   color: '#ffe082' },
+  { off: 6,  len: 2,  name: 'Código',    color: '#80cbc4' },
+  { off: 8,  len: 4,  name: 'Timestamp', color: '#a5d6a7' },
+  { off: 12, len: 2,  name: 'ms',        color: '#90caf9' },
+  { off: 14, len: 4,  name: 'Valor',     color: '#ce93d8' },
+  { off: 18, len: 2,  name: 'Checksum',  color: '#ffb74d' },
+];
+
+function renderDebug() {
+  if (!rawBuf) return;
+  const el = document.getElementById('dbg-content');
+
+  // ── Mapa de colores por offset de cabecera ─────────────────────────────
+  const hdrColorMap = new Array(72).fill(null);
+  HDR_FIELDS.forEach(f => {
+    for (let i = f.off; i < f.off + f.len && i < 72; i++) hdrColorMap[i] = f;
+  });
+
+  // ── Leyenda de cabecera ────────────────────────────────────────────────
+  const legendHtml = HDR_FIELDS.map(f =>
+    '<div class="dbg-legend-item">'
+    + '<div class="dbg-legend-swatch" style="background:' + f.color + ';border:1px solid rgba(0,0,0,.15);"></div>'
+    + '<span>' + f.name + '</span>'
+    + '</div>'
+  ).join('');
+
+  // ── Bytes de cabecera coloreados ───────────────────────────────────────
+  // Si el tamaño real difiere de 72, mostrar todos los bytes indicando sobrantes en rojo
+  const BYTES_PER_ROW = 16;
+  const actualHdrSize = cabeceraErrors.tamanoIncorrecto ? cabeceraErrors.tamanoEncontrado : 72;
+  const displayHdrSize = Math.max(actualHdrSize, 72); // mostrar al menos 72 bytes si hay datos
+  const safeDisplaySize = Math.min(displayHdrSize, rawBuf.length);
+  let hdrRows = '';
+  for (let row = 0; row < safeDisplaySize; row += BYTES_PER_ROW) {
+    let rowBytes = '';
+    for (let i = row; i < Math.min(row + BYTES_PER_ROW, safeDisplaySize); i++) {
+      const isExtra  = i >= 72;                        // bytes sobrantes (más allá de 72)
+      const isMissing = i >= actualHdrSize && i < 72;  // bytes faltantes (cabecera corta)
+      const field = hdrColorMap[i];
+      let bg, titleText;
+      if (isExtra) {
+        bg        = 'background:#cc2a2a;color:#fff;';
+        titleText = 'Byte sobrante [off=' + i + ']';
+      } else if (isMissing) {
+        bg        = 'background:#ffcccc;color:#cc2a2a;border:1px dashed #cc2a2a;';
+        titleText = 'Byte fuera de cabecera [off=' + i + ']';
+      } else if (field) {
+        bg        = 'background:' + field.color + ';color:#1a1e2a;';
+        titleText = field.name + ' [off=' + i + ']';
+      } else {
+        bg        = '';
+        titleText = 'off=' + i;
+      }
+      rowBytes += '<span class="dbg-byte" style="' + bg + '" title="' + titleText + '">'
+        + toHex(rawBuf[i], 2) + '</span>';
+    }
+    hdrRows += '<div class="dbg-hex-row">'
+      + '<span class="dbg-offset"' + (row >= 72 ? ' style="color:var(--red);"' : '') + '>'
+      + toHex(row, 4) + '</span>'
+      + '<div class="dbg-bytes">' + rowBytes + '</div>'
+      + '</div>';
+  }
+  // Advertencia visual si el tamaño no es 72
+  let hdrWarning = '';
+  if (cabeceraErrors.tamanoIncorrecto) {
+    if (actualHdrSize > 72) {
+      hdrWarning = '<div style="background:#fdf0f0;border:1px solid var(--red);color:var(--red);'
+        + 'padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+        + '⚠ Cabecera de ' + actualHdrSize + ' bytes — los ' + (actualHdrSize - 72)
+        + ' bytes sobrantes (offset ≥ 0x0048) se muestran en rojo.</div>';
+    } else {
+      hdrWarning = '<div style="background:#fdf0f0;border:1px solid var(--red);color:var(--red);'
+        + 'padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+        + '⚠ Cabecera de ' + actualHdrSize + ' bytes — faltan ' + (72 - actualHdrSize)
+        + ' bytes para completar la estructura esperada de 72 bytes.</div>';
+    }
+  }
+
+  // ── Leyenda de campos de paquete ───────────────────────────────────────
+  const pktLegendHtml = PKT_FIELDS.map(f =>
+    '<div class="dbg-legend-item">'
+    + '<div class="dbg-legend-swatch" style="background:' + f.color + ';border:1px solid rgba(0,0,0,.15);"></div>'
+    + '<span>' + f.name + '</span>'
+    + '</div>'
+  ).join('');
+
+  // ── Cabeceras de tabla coloreadas ──────────────────────────────────────
+  const thFields = PKT_FIELDS.map(f =>
+    '<th style="border-bottom:2px solid var(--border);background:' + f.color + '22;min-width:' + (f.len * 28) + 'px;text-align:center;">'
+    + '<span class="dbg-field-mark" style="background:' + f.color + ';"></span>'
+    + f.name + ' (' + f.len + 'B)</th>'
+  ).join('');
+
+  // ── Mostrar barra de progreso mientras se construyen los datos ──────────
+  const pktSize = 20;
+  const hdrSize = rawBuf.length >= 72 ? 72 : 0;
+  const totalPkts = allPackets.length || 1;
+
+  // Mostrar progreso inmediatamente
+  el.innerHTML =
+    '<div class="dbg-section-title">Cabecera \u00b7 '
+    + (cabeceraErrors.tamanoIncorrecto
+        ? '<span style="color:var(--red);">' + cabeceraErrors.tamanoEncontrado + ' bytes (esperado 72)</span>'
+        : '72 bytes')
+    + ' (offsets 0x0000\u20130x0047)</div>'
+    + '<div class="dbg-legend">' + legendHtml + '</div>'
+    + '<div class="dbg-hex-block">' + hdrWarning + hdrRows + '</div>'
+    + '<div class="dbg-section-title" style="margin-top:8px;">Paquetes \u00b7 cargando…</div>'
+    + '<div id="dbg-progress-wrap" style="margin:16px 0;">'
+    + '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Procesando paquetes… <span id="dbg-progress-pct">0%</span></div>'
+    + '<div style="background:var(--surface2);height:8px;border-radius:2px;overflow:hidden;">'
+    + '<div id="dbg-progress-bar" style="height:100%;background:var(--accent2);border-radius:2px;width:0%;transition:width .1s linear;"></div>'
+    + '</div></div>';
+
+  // Pre-construir array de filas en chunks para no bloquear el hilo
+  window._dbgPktData = [];
+  let offset = hdrSize;
+
+  // Recopilar todos los offsets válidos primero
+  const offsets = [];
+  let off2 = hdrSize;
+  while (off2 + pktSize <= rawBuf.length) {
+    const mark = rawBuf[off2] | (rawBuf[off2 + 1] << 8);
+    if (mark !== 0xDCBA) {
+      let found = false;
+      for (let s = off2 + 1; s <= rawBuf.length - 2; s++) {
+        if (rawBuf[s] === 0xBA && rawBuf[s+1] === 0xDC) { off2 = s; found = true; break; }
+      }
+      if (!found) break;
+      continue;
+    }
+    offsets.push(off2);
+    off2 += pktSize;
+  }
+
+  const CHUNK = 2000;
+  let chunkIdx = 0;
+
+  // Capturar referencias a los HTML ya renderizados
+  const hdrHtmlForLater =
+    '<div class="dbg-section-title">Cabecera \u00b7 '
+    + (cabeceraErrors.tamanoIncorrecto
+        ? '<span style="color:var(--red);">' + cabeceraErrors.tamanoEncontrado + ' bytes (esperado 72)</span>'
+        : '72 bytes')
+    + ' (offsets 0x0000\u20130x0047)</div>'
+    + '<div class="dbg-legend">' + legendHtml + '</div>'
+    + '<div class="dbg-hex-block">' + hdrWarning + hdrRows + '</div>';
+  const pktLegendForLater = pktLegendHtml;
+  const thFieldsForLater  = thFields;
+
+  function processChunk() {
+    const end = Math.min(chunkIdx + CHUNK, offsets.length);
+    for (let i = chunkIdx; i < end; i++) {
+      const o = offsets[i];
+      const numPkt    = (rawBuf[o+2] | (rawBuf[o+3]<<8) | (rawBuf[o+4]<<16) | (rawBuf[o+5]<<24)) >>> 0;
+      const chkStored = rawBuf[o+18] | (rawBuf[o+19]<<8);
+      const chkCalc   = calcChecksumPacket(rawBuf, o, pktSize);
+      const chkOk     = chkStored === chkCalc;
+      const fieldHex  = PKT_FIELDS.map(f => {
+        let h = '';
+        for (let j = f.off; j < f.off + f.len; j++) h += toHex(rawBuf[o+j], 2) + ' ';
+        return h.trim();
+      });
+      window._dbgPktData.push({ offset: o, numPkt, fieldHex, chkStored, chkCalc, chkOk });
+    }
+    chunkIdx = end;
+
+    // Actualizar barra de progreso
+    const pct = Math.round(chunkIdx / offsets.length * 100);
+    const barEl = document.getElementById('dbg-progress-bar');
+    const pctEl = document.getElementById('dbg-progress-pct');
+    if (barEl) barEl.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+
+    if (chunkIdx < offsets.length) {
+      setTimeout(processChunk, 0);
+    } else {
+      // Carga completa — renderizar tabla
+      _renderDebugFinal(hdrHtmlForLater, pktLegendForLater, thFieldsForLater);
+    }
+  }
+
+  setTimeout(processChunk, 0);
+  return; // salir de renderDebug; _renderDebugFinal completará el render
+
+  // ── Render HTML con filtro y controles ────────────────────────────────
+  // (este bloque es inalcanzable; ver _renderDebugFinal)
+}
+
+function _renderDebugFinal(hdrHtml, pktLegendHtml, thFields) {
+  const el = document.getElementById('dbg-content');
+  el.innerHTML =
+    hdrHtml
+
+    // Controles paquetes
+    + '<div class="dbg-section-title" style="margin-top:8px;">Paquetes \u00b7 ' + window._dbgPktData.length + ' registros \u00b7 20 bytes/paquete</div>'
+    + '<div class="dbg-legend">' + pktLegendHtml + '</div>'
+    + '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">'
+    + '  <div class="filter-group"><label>N\u00ba paquete desde</label>'
+    + '    <input type="number" id="dbg-from" placeholder="0" min="0" style="width:110px;"></div>'
+    + '  <div class="filter-group"><label>N\u00ba paquete hasta</label>'
+    + '    <input type="number" id="dbg-to" placeholder="\u221e" min="0" style="width:110px;"></div>'
+    + '  <button class="btn primary" onclick="applyDebugFilter()">Filtrar</button>'
+    + '  <button class="btn" onclick="clearDebugFilter()">Limpiar</button>'
+    + '  <button class="btn" onclick="exportDebugCSV()" title="Exportar paquetes visibles a CSV">\u2b07 CSV</button>'
+    + '  <span id="dbg-stats" style="font-size:12px;color:var(--muted);align-self:flex-end;margin-left:auto;"></span>'
+    + '</div>'
+
+    // Tabla
+    + '<div class="tbl-wrap" style="max-height:70vh;">'
+    + '<table id="dbg-pkt-table">'
+    + '<thead><tr>'
+    + '<th style="text-align:center;">Offset</th>'
+    + '<th style="text-align:center;">N\u00ba paq.</th>'
+    + thFields
+    + '<th style="text-align:center;">CHK le\u00eddo / calculado</th>'
+    + '</tr></thead>'
+    + '<tbody id="dbg-pkt-body"></tbody>'
+    + '</table>'
+    + '</div>';
+
+  renderDebugRows(null, null);
+}
+
+function renderDebugRows(fromNum, toNum) {
+  const tbody = document.getElementById('dbg-pkt-body');
+  if (!tbody || !window._dbgPktData) return;
+
+  const data = window._dbgPktData;
+  const filtered = data.filter(r => {
+    if (fromNum !== null && r.numPkt < fromNum) return false;
+    if (toNum   !== null && r.numPkt > toNum)   return false;
+    return true;
+  });
+
+  const LIMIT = 5000;
+  const shown = filtered.slice(0, LIMIT);
+
+  tbody.innerHTML = shown.map(r => {
+    const fieldCells = PKT_FIELDS.map((f, i) =>
+      '<td style="background:' + f.color + '18;font-family:var(--mono);text-align:center;">'
+      + r.fieldHex[i] + '</td>'
+    ).join('');
+    // Mostrar checksum en orden de bytes del fichero (little-endian: byte bajo primero)
+    const chkStoredLE = toHex(r.chkStored & 0xFF, 2) + ' ' + toHex((r.chkStored >> 8) & 0xFF, 2);
+    const chkCalcLE   = toHex(r.chkCalc   & 0xFF, 2) + ' ' + toHex((r.chkCalc   >> 8) & 0xFF, 2);
+    const chkCell = r.chkOk
+      ? '<td class="dbg-chk-ok" style="text-align:center;font-family:var(--mono);">= ' + chkCalcLE + ' \u2713</td>'
+      : '<td class="dbg-chk-err-cell" style="text-align:center;font-family:var(--mono);">' + chkStoredLE + ' \u2260 ' + chkCalcLE + ' \u2717</td>';
+    return '<tr class="' + (r.chkOk ? '' : 'dbg-chk-err') + '">'
+      + '<td style="color:var(--muted);font-size:11px;text-align:center;">#' + toHex(r.offset, 6) + '</td>'
+      + '<td style="color:var(--muted);text-align:center;">' + r.numPkt + '</td>'
+      + fieldCells
+      + chkCell
+      + '</tr>';
+  }).join('');
+
+  // Advertencia si se supera el límite
+  if (filtered.length > LIMIT) {
+    tbody.insertAdjacentHTML('beforeend',
+      '<tr><td colspan="' + (PKT_FIELDS.length + 3) + '" style="text-align:center;color:var(--muted);padding:12px;">'
+      + '\u2026 mostrando los primeros ' + LIMIT.toLocaleString('es-ES') + ' de ' + filtered.length.toLocaleString('es-ES') + ' paquetes filtrados.'
+      + '</td></tr>');
+  }
+
+  const stats = document.getElementById('dbg-stats');
+  if (stats) stats.textContent = filtered.length.toLocaleString('es-ES') + ' de ' + data.length.toLocaleString('es-ES') + ' paquetes';
+}
+
+function applyDebugFilter() {
+  const fromVal = document.getElementById('dbg-from').value;
+  const toVal   = document.getElementById('dbg-to').value;
+  const fromNum = fromVal !== '' ? parseInt(fromVal) : null;
+  const toNum   = toVal   !== '' ? parseInt(toVal)   : null;
+  renderDebugRows(fromNum, toNum);
+}
+
+function clearDebugFilter() {
+  document.getElementById('dbg-from').value = '';
+  document.getElementById('dbg-to').value   = '';
+  renderDebugRows(null, null);
+}
+
+function exportDebugCSV() {
+  if (!window._dbgPktData) return;
+  const fromVal = document.getElementById('dbg-from') ? document.getElementById('dbg-from').value : '';
+  const toVal   = document.getElementById('dbg-to')   ? document.getElementById('dbg-to').value   : '';
+  const fromNum = fromVal !== '' ? parseInt(fromVal) : null;
+  const toNum   = toVal   !== '' ? parseInt(toVal)   : null;
+
+  const filtered = window._dbgPktData.filter(r => {
+    if (fromNum !== null && r.numPkt < fromNum) return false;
+    if (toNum   !== null && r.numPkt > toNum)   return false;
+    return true;
+  });
+
+  const SEP = ',';
+  const headers = ['Offset_Hex', 'Num_Paquete'].concat(PKT_FIELDS.map(f => f.name)).concat(['CHK_Calculado_Hex', 'CHK_OK']);
+  const lines   = [headers.join(SEP)];
+
+  filtered.forEach(r => {
+    const chkCalcLE = toHex(r.chkCalc & 0xFF, 2) + ' ' + toHex((r.chkCalc >> 8) & 0xFF, 2);
+    const row = [
+      '#' + toHex(r.offset, 6),
+      r.numPkt,
+      ...r.fieldHex,
+      chkCalcLE,
+      r.chkOk ? 'OK' : 'ERROR'
+    ];
+    lines.push(row.join(SEP));
+  });
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fname = (document.getElementById('fi-name').textContent || 'registro').replace(/\.[^.]+$/, '');
+  a.href     = url;
+  a.download = fname + '_depuracion.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 
 
 </script>
