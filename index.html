@@ -234,11 +234,83 @@
   .td-val { color: var(--green); }
   .td-interp { color: var(--text); font-size: 12px; white-space: normal; max-width: 280px; line-height: 1.4; }
   .td-sensado { color: var(--accent2); font-weight: 600; font-size: 12px; white-space: nowrap; }
+  .td-sensado-incong {
+    color: #fff;
+    background: #8b1a1a;
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 2px;
+    padding: 2px 6px;
+    display: inline-block;
+    letter-spacing: 0.5px;
+  }
   .td-eficacia { color: var(--green); font-weight: 600; font-size: 11px; white-space: nowrap; }
   .td-sin-eficacia { color: var(--red); font-size: 11px; white-space: nowrap; }
   .td-chk { font-size: 11px; }
   .chk-ok { color: var(--green); }
   .chk-err { color: var(--red); font-weight: 700; }
+
+  /* ── DETALLE DE PAQUETE (fila expandible) ── */
+  tr.pkt-detail-row td {
+    background: var(--surface2);
+    padding: 10px 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .pkt-detail-box {
+    font-family: var(--mono);
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .pkt-detail-hex {
+    flex: 1 1 auto;
+  }
+  .pkt-detail-hex-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .pkt-hex-bytes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pkt-hex-byte {
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: default;
+  }
+  .pkt-hex-byte.field-mark    { background:#fde8e8; border-color:#f4a0a0; }
+  .pkt-hex-byte.field-num     { background:#fff8e1; border-color:#f4d87a; }
+  .pkt-hex-byte.field-code    { background:#e8f4fd; border-color:#90caf9; }
+  .pkt-hex-byte.field-ts      { background:#e8fdf0; border-color:#86c99a; }
+  .pkt-hex-byte.field-ms      { background:#f3e8fd; border-color:#c59af0; }
+  .pkt-hex-byte.field-val     { background:#fdf3e8; border-color:#f0b87a; }
+  .pkt-hex-byte.field-chk     { background:#f0f0f0; border-color:#b0b0b0; }
+  .pkt-hex-byte.field-chk.chk-err-byte { background:#fde8e8; border-color:#f4a0a0; }
+  .pkt-detail-info {
+    flex: 0 0 auto;
+    min-width: 200px;
+  }
+  .pkt-detail-info-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+  .pkt-detail-info-key { color: var(--muted); min-width: 120px; }
+  .pkt-detail-info-val { color: var(--text); font-weight: 600; }
+  .pkt-detail-info-val.ok  { color: var(--green); }
+  .pkt-detail-info-val.bad { color: var(--red); }
+  tr.pkt-row-selected { background: #eef4ff !important; outline: 2px solid var(--accent2); outline-offset: -2px; }
 
   /* ── EMPTY / ERROR STATES ── */
   .empty-msg { color: var(--muted); text-align: center; padding: 40px; font-size: 14px; }
@@ -259,6 +331,7 @@
 
   /* ── PRINT / PDF ── */
   #pdf-report { display: none; }
+  @page { margin: 0mm; }
   @media print {
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     header, #dropzone, #app, #progress-overlay { display: none !important; }
@@ -268,7 +341,7 @@
       font-family: Arial, sans-serif;
       font-size: 11pt;
       color: #1a1e2a;
-      padding: 0;
+      padding: 15mm 18mm;
       margin: 0;
     }
     #pdf-report .pdf-header {
@@ -350,23 +423,30 @@
     #pdf-report table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 9pt;
+      font-size: 7.5pt;
       margin-top: 6pt;
+    }
+    #pdf-report table[data-fixed] {
+      table-layout: fixed;
     }
     #pdf-report table th {
       background: #e8eaee !important;
       border-bottom: 1pt solid #d0d4dc;
-      padding: 4pt 6pt;
+      padding: 3pt 4pt;
       text-align: left;
-      font-size: 8pt;
+      font-size: 7pt;
       text-transform: uppercase;
-      letter-spacing: 0.5pt;
+      letter-spacing: 0.3pt;
       color: #6b7280;
+      overflow: hidden;
+      word-break: break-word;
     }
     #pdf-report table td {
-      padding: 4pt 6pt;
+      padding: 3pt 4pt;
       border-bottom: 1pt solid #e8eaee;
       vertical-align: top;
+      overflow: hidden;
+      word-break: break-word;
     }
     #pdf-report table tr.err-row { background: #fdf0f0 !important; }
     #pdf-report .pdf-footer {
@@ -581,6 +661,7 @@
     padding: 0;
   }
   #sensado-canvas { display: block; cursor: crosshair; }
+  #sensado-estado-canvas { display: block; cursor: crosshair; }
   .sensado-tooltip {
     display: none; position: fixed; z-index: 500;
     background: var(--surface); border: 1px solid var(--border);
@@ -634,14 +715,109 @@
   #err-sections td { padding: 7px 10px; font-size: 13px; }
   .err-row-highlight { background: #fff5f5 !important; }
   .err-delta-neg { color: var(--red); font-weight: 600; }
+
+  /* ── LOGIN ── */
+  #login-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #login-overlay.hidden { display: none; }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px 56px;
+    width: 380px;
+    box-shadow: 0 8px 32px #00000014;
+  }
+  .login-logo {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 10px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  .login-title {
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .login-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+  }
+  .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .login-field label {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+  }
+  .login-field input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 14px;
+    padding: 10px 12px; outline: none; transition: border-color .15s; width: 100%;
+  }
+  .login-field input:focus { border-color: var(--accent2); }
+  .login-btn {
+    width: 100%; padding: 12px;
+    background: var(--accent2); border: none; color: #fff;
+    font-family: var(--sans); font-size: 14px; font-weight: 700;
+    cursor: pointer; letter-spacing: .5px; margin-top: 8px;
+    transition: opacity .15s;
+  }
+  .login-btn:hover { opacity: .88; }
+  .login-error {
+    display: none; margin-top: 14px;
+    background: #fdf0f0; border: 1px solid var(--red);
+    color: var(--red); padding: 9px 12px; font-size: 12px;
+  }
+  .login-error.visible { display: block; }
 </style>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">ASFA CLS</div>
+    <div class="login-title">Analizador CLS</div>
+    <div class="login-subtitle">ASFA Digital Vía · ET 03.365.003.7</div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" autocomplete="off" spellcheck="false"
+             onkeydown="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Acceder</button>
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos.</div>
+  </div>
+</div>
 
 <header>
   <h1>Analizador CLS · ASFA Digital Vía</h1>
   <span>ET 03.365.003.7</span>
   <span>Versión 0.1 - Marzo 2026</span>
+  <div style="display:flex;align-items:center;gap:4px;margin-left:16px;">
+    <button onclick="zoomOut()" title="Reducir zoom" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">−</button>
+    <button onclick="zoomReset()" title="Restablecer zoom" id="zoom-label" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;height:28px;padding:0 8px;cursor:pointer;min-width:48px;">100%</button>
+    <button onclick="zoomIn()"  title="Aumentar zoom" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">+</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-left:20px;padding-left:16px;border-left:1px solid var(--border);">
+    <span style="font-size:12px;color:var(--muted);">👤</span>
+    <span id="header-user" style="font-size:13px;color:var(--accent2);font-weight:600;font-family:var(--sans);"></span>
+    <button onclick="doLogout()" title="Cerrar sesión" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';">⏏ Salir</button>
+  </div>
 </header>
 
 <!-- PROGRESS OVERLAY -->
@@ -743,8 +919,16 @@
             <select id="f-date-from" style="width:140px"><option value="">Todas</option></select>
           </div>
           <div class="filter-group">
+            <label>Hora desde (UTC)</label>
+            <input type="time" id="f-time-from" step="1" value="00:00:00" style="width:110px">
+          </div>
+          <div class="filter-group">
             <label>Fecha hasta</label>
             <select id="f-date-to" style="width:140px"><option value="">Todas</option></select>
+          </div>
+          <div class="filter-group">
+            <label>Hora hasta (UTC)</label>
+            <input type="time" id="f-time-to" step="1" value="23:59:59" style="width:110px">
           </div>
           <div class="filter-group">
             <label>Checksum</label>
@@ -925,9 +1109,28 @@
       No se han encontrado paquetes de aspecto (FE00) en el registro.
     </div>
     <div id="sensado-scroll-wrap" class="sensado-scroll-wrap">
+      <div style="font-size:11px;color:var(--muted);padding:4px 8px 6px;font-family:var(--mono);letter-spacing:0.5px;">
+        Aspecto enviado a balizas (FE00)
+      </div>
       <canvas id="sensado-canvas"></canvas>
     </div>
     <div id="sensado-tooltip" class="sensado-tooltip"></div>
+
+    <!-- Gráfico Estado de Sensado -->
+    <div id="sensado-estado-wrap" style="display:none;margin-top:20px;">
+      <div style="font-size:11px;color:var(--muted);padding:4px 8px 6px;font-family:var(--mono);letter-spacing:0.5px;">
+        Estado de Sensado (FE40 · FE42 · FE44 · FE46)
+      </div>
+      <div id="sensado-estado-legend" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;padding:0 8px;font-size:11px;font-family:var(--mono);">
+        <span><span style="display:inline-block;width:12px;height:12px;background:#1a8a4a;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>V Verde</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#c47a00;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>A Amarillo</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#cc2a2a;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>R Rojo</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#1a6fba;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>P Pantalla</span>
+      </div>
+      <div class="sensado-scroll-wrap" id="sensado-estado-scroll">
+        <canvas id="sensado-estado-canvas"></canvas>
+      </div>
+    </div>
 
     <!-- Tabla de tiempos por aspecto -->
     <div id="sensado-times-wrap" style="margin-top:28px;display:none;">
@@ -1303,14 +1506,17 @@ function interpretValue(code, val) {
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
+let currentUser = '';  // usuario autenticado
 let rawBuf = null;  // buffer completo del fichero para depuración
+let pktSize = 20;   // tamaño de paquete (fijo según ET: 20 bytes)
 let fileNameError = null;  // error de formato del nombre del fichero
 let allPackets = [];
 let filteredPackets = [];
 let sortCol = 'num';
 let sortAsc = true;
 let numPktsDeclarado = 0;
-let balizasFondos = [null, null, null, null]; // fondo configurado de balizas 1-4
+let balizasFondos   = [null, null, null, null]; // fondo configurado de balizas 1-4
+let balizaPresente  = [0, 0, 0, 0];            // 1 si la baliza está declarada presente en configSis
 // Errores de cabecera (se rellenan en parseCLS)
 let cabeceraErrors = {
   tamanoIncorrecto: false,
@@ -1388,7 +1594,28 @@ function computeCabErrors() {
 }
 
 function computeFailureMap() {
-  return computeFailureMap();
+  // Devuelve un array de objetos { tipo, codigo, fabricante, descripcion, act, desact }
+  // para FF06 y FExx de fallo (igual que renderCE pero en formato normalizado)
+  const fexxConAct = new Set(
+    allPackets.filter(p => FALLO_CODES_FEXX.has(p.code) && (p.val & 1) === 1).map(p => p.code)
+  );
+  const pkts = allPackets.filter(p => p.code === 'FF06' || fexxConAct.has(p.code));
+  const map = {};
+  pkts.forEach(p => {
+    let key, codigo, fabricante, descripcion;
+    if (p.code === 'FF06') {
+      codigo = (p.val >> 1) & 0x7FF;
+      fabricante = (p.val >> 12) & 0xF;
+      key = 'FF06_' + codigo + '_' + fabricante;
+      descripcion = 'Consultar documentación fabricante';
+    } else {
+      codigo = p.code; fabricante = '—'; key = p.code;
+      descripcion = VARIABLES[p.code] || p.code;
+    }
+    if (!map[key]) map[key] = { tipo: p.code === 'FF06' ? 'FF06' : 'FExx', codigo, fabricante, descripcion, act: 0, desact: 0 };
+    if ((p.val & 1) === 1) map[key].act++; else map[key].desact++;
+  });
+  return Object.values(map);
 }
 
 // ─── FILE INPUT ───────────────────────────────────────────────────────────────
@@ -1409,10 +1636,12 @@ function resetApp() {
   allPackets = []; filteredPackets = [];
   numPktsDeclarado = 0;
   balizasFondos = [null, null, null, null];
+  balizaPresente = [0, 0, 0, 0];
   renderedRows = 0;
   statsData = [];
   statsView = 'tabla';
   sensadoOrient = 'horizontal';
+  _lastDetailIdx = null;
 
   // ── Tabla paquetes ──
   document.getElementById('pkt-body').innerHTML = '';
@@ -1449,6 +1678,7 @@ function resetApp() {
   document.getElementById('sensado-legend').innerHTML  = '';
   document.getElementById('sensado-empty').style.display = 'none';
   document.getElementById('sensado-scroll-wrap').style.display = 'none';
+  document.getElementById('sensado-estado-wrap').style.display = 'none';
   document.getElementById('sensado-times-wrap').style.display  = 'none';
   document.getElementById('sensado-times-body').innerHTML = '';
   document.getElementById('sn-date-from').innerHTML = '<option value="">Todas</option>';
@@ -1470,6 +1700,8 @@ function resetApp() {
   document.getElementById('f-name').value      = '';
   document.getElementById('f-date-from').value = '';
   document.getElementById('f-date-to').value   = '';
+  document.getElementById('f-time-from').value = '00:00:00';
+  document.getElementById('f-time-to').value   = '23:59:59';
   document.getElementById('f-chk').value       = '';
   document.getElementById('f-sensado').value   = '';
   document.getElementById('f-pkt-from').value  = '';
@@ -1682,10 +1914,31 @@ function parseCLS(buf, file) {
   // Tamaño de paquete ya calculado arriba (verPktSize, pktSize)
   let pktOffset = headerOk ? HDR_SIZE : 0;
 
+  // ── PRE-CÁLCULO balizaPresente desde configSis ───────────────────────────
+  // Se necesita antes del bucle de parsing para la post-pasada de eficacia.
+  // Si la cabecera es incorrecta se deja a [0,0,0,0] (sin balizas).
+  if (headerOk && buf.length >= 12) {
+    const _cfgSisPre = (buf[11] << 8) | buf[10]; // configSis little-endian en offset 10
+    balizaPresente = [
+      (_cfgSisPre >> 1) & 1,
+      (_cfgSisPre >> 3) & 1,
+      (_cfgSisPre >> 6) & 1,
+      (_cfgSisPre >> 9) & 1,
+    ];
+  }
+
+  // balizaPresente puede ampliarse durante el parsing si se reciben FEC de balizas
+  // no declaradas en configSis (se detectan y se fuerzan como presentes).
+  const balizaForzada = [0, 0, 0, 0]; // 1 si fue forzada por paquete FEC no declarado
+
   // Estado de sensado acumulado (se actualiza con cada paquete de detección)
   const sensState = { FE40: 0, FE42: 0, FE44: 0, FE46: 0 };
   // Estado de eficacia acumulado (FEC0=UC, FEC1=B1, FEC2=B2, FEC3=B3, FEC4=B4)
-  const eficState = { FEC0: 0, FEC1: 0, FEC2: 0, FEC3: 0, FEC4: 0 };
+  // null = aún no se ha recibido ningún paquete FEC para ese componente (estado desconocido).
+  // hayAlgunFEC: se activa en cuanto llega el primer FEC0–FEC4 en el registro.
+  // Si al procesar un paquete hayAlgunFEC=false y nConocidos=0 → sin eficacia (equipo sin FEC).
+  const eficState = { FEC0: null, FEC1: null, FEC2: null, FEC3: null, FEC4: null };
+  let hayAlgunFEC = false;
 
   while (pktOffset + pktSize <= buf.length) {
     const mark = readU16LE(buf, pktOffset);
@@ -1716,7 +1969,22 @@ function parseCLS(buf, file) {
     if (codeStr in sensState) sensState[codeStr] = val & 0xFF;
 
     // Actualizar estado de eficacia
-    if (codeStr in eficState) eficState[codeStr] = val & 0xFF;
+    // Si llega FEC1–FEC4 de una baliza no declarada en configSis, solo se fuerza
+    // como presente si el valor indica eficacia activa (balEficaz O eicEficaz).
+    if (codeStr in eficState) {
+      eficState[codeStr] = val & 0xFF;
+      hayAlgunFEC = true;
+      const forzIdx = { FEC1: 0, FEC2: 1, FEC3: 2, FEC4: 3 }[codeStr];
+      if (forzIdx !== undefined && !balizaPresente[forzIdx]) {
+        const v8 = val & 0xFF;
+        const balEficaz = (v8 >> 5) === 0b111;
+        const eicEficaz = (v8 & 0x1F) >= 0x15;
+        if (balEficaz || eicEficaz) {
+          balizaPresente[forzIdx] = 1;
+          balizaForzada[forzIdx]  = 1;
+        }
+      }
+    }
 
     // Calcular columna Sensado: estado activo en el momento de este paquete
     // FE40: verde  (bits 2→detección, bit0→destellante)
@@ -1729,31 +1997,63 @@ function parseCLS(buf, file) {
     if ((sensState.FE44 & 0x1) !== 0) sensado.push('R');
     if ((sensState.FE46 & 0x1) !== 0) sensado.push('P');
 
-    // Calcular columna Eficacia:
-    // FEC0 UC: bit0=1 → con eficacia
-    // FEC1..FEC4 EIC/Baliza: bits 5-7 = 111 → baliza eficaz; bits 0-4 >= 0x15 → EIC eficaz
-    // Se considera "con eficacia" si baliza eficaz (bits 7-5 = 111) O EIC eficaz (bits 4-0 >= 0x15)
-    const efic = [];
-    if ((eficState.FEC0 & 0x1) !== 0) efic.push('UC');
-    const eficBalizas = [
-      { key: 'FEC1', label: 'EB1' },
-      { key: 'FEC2', label: 'EB2' },
-      { key: 'FEC3', label: 'EB3' },
-      { key: 'FEC4', label: 'EB4' },
-    ];
-    eficBalizas.forEach(({ key, label }) => {
-      const v = eficState[key];
-      const balEficaz = (v >> 5) === 0b111;           // bits 7-5 = 111
-      const eicEficaz = (v & 0x1F) >= 0x15;           // bits 4-0 >= 21
-      if (balEficaz || eicEficaz) efic.push(label);
-    });
-    const eficacia = efic.length ? efic.join('+') : 'Sin Eficacia';
+    // Guardar snapshot del estado de eficacia en este momento (se evaluará en post-pasada)
+    const eficSnapshot = {
+      FEC0: eficState.FEC0, FEC1: eficState.FEC1,
+      FEC2: eficState.FEC2, FEC3: eficState.FEC3, FEC4: eficState.FEC4,
+    };
 
     allPackets.push({ idx: pktIdx++, num: numPkt, code: codeStr, varname, ts, ms, val, chkOk, valInterp,
                       tsDate: ts ? new Date(ts * 1000) : null,
-                      sensado: sensado.join('-'), eficacia });
+                      sensado: sensado.join('-'), eficacia: '—', eficaciaCompleta: true,
+                      rawOffset: pktOffset, chkStored, chkCalc,
+                      _eficSnapshot: eficSnapshot });
     pktOffset += pktSize;
   }
+
+  // ── POST-PASADA: calcular eficacia y eficaciaCompleta con hayAlgunFEC ya definitivo ──
+  // nPresentes: número total de componentes presentes en este registro (UC + balizas).
+  // Es fijo para todo el registro (incluye las forzadas por paquetes FEC no declarados).
+  const nPresentes = hayAlgunFEC ? 1 + balizaPresente.reduce((s, v) => s + v, 0) : 0;
+
+  function evaluarEficacia(snap) {
+    // Sin FEC en todo el registro → Sin Eficacia en todos los paquetes
+    if (!hayAlgunFEC) return { eficacia: 'Sin Eficacia', eficaciaCompleta: false };
+
+    const efic = [];
+    if (snap.FEC0 !== null && (snap.FEC0 & 0x1)) efic.push('UC');
+
+    [{ key: 'FEC1', label: 'EB1', idx: 0 },
+     { key: 'FEC2', label: 'EB2', idx: 1 },
+     { key: 'FEC3', label: 'EB3', idx: 2 },
+     { key: 'FEC4', label: 'EB4', idx: 3 }].forEach(({ key, label, idx }) => {
+      if (!balizaPresente[idx]) return;
+      const v = snap[key];
+      if (v !== null && ((v >> 5) === 0b111 || (v & 0x1F) >= 0x15)) efic.push(label);
+    });
+
+    // Eficacia completa = todos los componentes presentes tienen eficacia activa.
+    // Si alguno es null (estado aún desconocido) o no eficaz → incompleta.
+    const completa = efic.length === nPresentes;
+
+    // Texto de la columna:
+    // '—'           → ningún componente tiene estado conocido aún (todos null)
+    // 'Sin Eficacia'→ hay estados conocidos pero ninguno activo
+    // 'UC+EB1...'   → los que tienen eficacia activa
+    const nConocidos = (snap.FEC0 !== null ? 1 : 0)
+      + [0,1,2,3].filter(i => balizaPresente[i] && snap[`FEC${i+1}`] !== null).length;
+    const eficacia = nConocidos === 0 ? '—'
+                   : efic.length    ? efic.join('+')
+                   : 'Sin Eficacia';
+    return { eficacia, eficaciaCompleta: completa };
+  }
+
+  allPackets.forEach(p => {
+    const r = evaluarEficacia(p._eficSnapshot);
+    p.eficacia         = r.eficacia;
+    p.eficaciaCompleta = r.eficaciaCompleta;
+    delete p._eficSnapshot;
+  });
 
   filteredPackets = [...allPackets];
 
@@ -1852,12 +2152,14 @@ function parseCLS(buf, file) {
     });
   }
   // Guardar fondos globalmente: null si la baliza no está presente (según configSis)
-  const balizaPresente = [
+  const _balizaPresente = [
     (configSis >> 1) & 1,  // bit1 → baliza 1
     (configSis >> 3) & 1,  // bit3 → baliza 2
     (configSis >> 6) & 1,  // bit6 → baliza 3
     (configSis >> 9) & 1,  // bit9 → baliza 4
   ];
+  // Fusionar con balizaForzada: si se recibió FEC de una baliza no declarada, mantenerla presente
+  balizaPresente = _balizaPresente.map((v, i) => v | balizaForzada[i]);
   balizasFondos = balizas.map((b, i) => balizaPresente[i] ? b.fondo : null);
   // Recalcular interpretación de paquetes FE00 con valor 15 (Fondo Configurado)
   // ahora que balizasFondos ya está disponible
@@ -1906,7 +2208,17 @@ function parseCLS(buf, file) {
       Los datos se muestran pero pueden no ser fiables.
     </div>`;
 
-  cab.innerHTML = `${chkWarning}
+  const balizasForzadasDesc = balizaForzada.map((f,i) => f ? `Baliza ${i+1}` : null).filter(Boolean);
+  const forzadaWarning = balizasForzadasDesc.length === 0 ? '' : `
+    <div style="background:#fff8e1;border:1px solid #e6a817;color:#7a5200;
+                padding:10px 14px;font-size:12px;line-height:1.6;margin-bottom:12px;">
+      <strong>⚠ Baliza(s) no declaradas en configSis con paquetes FEC en el registro</strong><br>
+      ${balizasForzadasDesc.join(', ')} no está(n) marcada(s) como presente(s) en la cabecera
+      pero se han recibido paquetes de eficacia para ella(s).<br>
+      Se consideran presentes para el cálculo de eficacia.
+    </div>`;
+
+  cab.innerHTML = `${chkWarning}${forzadaWarning}
     <div class="cab-row"><span class="cab-key">CRC almacenado</span><span class="cab-val">${toHex(crc_stored)}</span></div>
     <div class="cab-row"><span class="cab-key">CRC calculado</span><span class="cab-val ${crcOk?'good':'bad'}">${toHex(crc_calc)} ${crcOk ? '✓ OK (' + crcVariant + ')' : '✗ ERROR — ninguna variante coincide'}</span></div>
     <div class="cab-row"><span class="cab-key">Checksum cabecera almacenado</span><span class="cab-val">${toHex(chkHdr2)}</span></div>
@@ -2043,6 +2355,17 @@ function renderConfigSis(val) {
 const PAGE_SIZE = 500;
 let renderedRows = 0;
 
+// Estados de sensado incongruentes (combinaciones físicamente imposibles o inválidas)
+// Se normalizan ordenando las letras alfabéticamente para que el orden no importe
+const _INCONG_RAW = ['P', 'V-P', 'R-P', 'R-V', 'R-V-P', 'R-A', 'R-A-P', 'R-A-V', 'R-A-V-P'];
+const SENSADO_INCONGRUENTE = new Set(
+  _INCONG_RAW.map(s => s.split('-').sort().join('-'))
+);
+function isSensadoIncong(sensado) {
+  if (!sensado) return false;
+  return SENSADO_INCONGRUENTE.has(sensado.split('-').sort().join('-'));
+}
+
 function buildRow(p) {
   const chkCell = p.chkOk
     ? `<span class="chk-ok">&#10003;</span>`
@@ -2059,9 +2382,17 @@ function buildRow(p) {
     rowStyle = esActivacion
       ? 'background:#fdf0f0;border-left:3px solid var(--red);'
       : 'background:#f0fdf4;border-left:3px solid var(--green);';
+  } else if (p.code === 'FE00') {
+    rowStyle = 'background:#e8f4fd;border-left:3px solid var(--accent2);';
   }
 
-  return '<tr class="' + rowClass + '" style="' + rowStyle + '">'
+  // Celda de sensado: resaltar si el estado es incongruente
+  const sensadoVal = p.sensado || '';
+  const sensadoCell = isSensadoIncong(sensadoVal)
+    ? '<span class="td-sensado-incong" title="Estado de sensado incongruente">⚠ ' + sensadoVal + '</span>'
+    : sensadoVal;
+
+  return '<tr class="' + rowClass + '" style="' + rowStyle + 'cursor:pointer;" data-idx="' + p.idx + '" onclick="togglePktDetail(this,' + p.idx + ')">'
     + '<td class="td-num">' + p.num + '</td>'
     + '<td class="td-code">' + p.code + '</td>'
     + '<td class="td-varname">' + p.varname + '</td>'
@@ -2070,10 +2401,113 @@ function buildRow(p) {
     + '<td class="td-num">' + p.ms + '</td>'
     + '<td class="td-val">' + valHex + '</td>'
     + '<td class="td-interp">' + p.valInterp + '</td>'
-    + '<td class="td-sensado">' + (p.sensado || '') + '</td>'
+    + '<td class="td-sensado">' + sensadoCell + '</td>'
     + '<td class="' + (p.eficacia === 'Sin Eficacia' ? 'td-sin-eficacia' : 'td-eficacia') + '">' + (p.eficacia || '') + '</td>'
     + '<td class="td-chk">' + chkCell + '</td>'
     + '</tr>';
+}
+
+// ─── DETALLE HEX DE PAQUETE ──────────────────────────────────────────────────
+// Campos del paquete con colores (offsets relativos al inicio del paquete)
+const PKT_FIELD_COLORS = [
+  { off: 0,  len: 2,  cls: 'field-mark',  title: 'Marca (0xDCBA)' },
+  { off: 2,  len: 4,  cls: 'field-num',   title: 'Nº paquete' },
+  { off: 6,  len: 2,  cls: 'field-code',  title: 'Código' },
+  { off: 8,  len: 4,  cls: 'field-ts',    title: 'Timestamp' },
+  { off: 12, len: 2,  cls: 'field-ms',    title: 'Milisegundos' },
+  { off: 14, len: 4,  cls: 'field-val',   title: 'Valor' },
+];
+
+let _lastDetailIdx = null; // índice del paquete con detalle abierto
+
+function togglePktDetail(trEl, idx) {
+  const existing = trEl.nextElementSibling;
+
+  // Si ya hay detalle abierto para esta fila, cerrarlo
+  if (existing && existing.classList.contains('pkt-detail-row')) {
+    existing.remove();
+    trEl.classList.remove('pkt-row-selected');
+    _lastDetailIdx = null;
+    return;
+  }
+
+  // Cerrar cualquier otro detalle abierto
+  const prev = document.querySelector('tr.pkt-detail-row');
+  if (prev) {
+    prev.previousElementSibling?.classList.remove('pkt-row-selected');
+    prev.remove();
+  }
+
+  const p = allPackets[idx];
+  if (!p || !rawBuf) return;
+
+  const offset = p.rawOffset;
+  const size   = pktSize;
+
+  // Construir bytes coloreados
+  const colorMap = new Array(size).fill(null);
+  PKT_FIELD_COLORS.forEach(f => {
+    for (let i = f.off; i < f.off + f.len && i < size; i++) colorMap[i] = f;
+  });
+  // El checksum ocupa los últimos 2 bytes
+  for (let i = size - 2; i < size; i++) colorMap[i] = { cls: 'field-chk', title: 'Checksum' };
+
+  const chkOk = p.chkOk;
+  const bytesHtml = Array.from({ length: size }, (_, i) => {
+    const byte = rawBuf[offset + i];
+    const f    = colorMap[i];
+    const cls  = f ? f.cls : '';
+    const extra = (!chkOk && f && f.cls === 'field-chk') ? ' chk-err-byte' : '';
+    const tip  = f ? f.title : '';
+    return `<span class="pkt-hex-byte ${cls}${extra}" title="${tip}">${byte !== undefined ? byte.toString(16).padStart(2,'0').toUpperCase() : '??'}</span>`;
+  }).join('');
+
+  // Leyenda de campos
+  const legendHtml = PKT_FIELD_COLORS.map(f =>
+    `<span class="pkt-hex-byte ${f.cls}" style="font-size:11px;">${f.title}</span>`
+  ).join('') + `<span class="pkt-hex-byte field-chk${!chkOk ? ' chk-err-byte' : ''}" style="font-size:11px;">Checksum</span>`;
+
+  const chkStoredHex = '0x' + p.chkStored.toString(16).toUpperCase().padStart(4,'0');
+  const chkCalcHex   = '0x' + p.chkCalc.toString(16).toUpperCase().padStart(4,'0');
+
+  const detailHtml = `
+    <tr class="pkt-detail-row">
+      <td colspan="11">
+        <div class="pkt-detail-box">
+          <div class="pkt-detail-hex">
+            <div class="pkt-detail-hex-title">Bytes del paquete (offset 0x${offset.toString(16).toUpperCase().padStart(6,'0')})</div>
+            <div class="pkt-hex-bytes">${bytesHtml}</div>
+            <div class="pkt-hex-bytes" style="margin-top:6px;">${legendHtml}</div>
+          </div>
+          <div class="pkt-detail-info">
+            <div class="pkt-detail-info-row">
+              <span class="pkt-detail-info-key">Checksum almacenado</span>
+              <span class="pkt-detail-info-val">${chkStoredHex}</span>
+            </div>
+            <div class="pkt-detail-info-row">
+              <span class="pkt-detail-info-key">Checksum calculado</span>
+              <span class="pkt-detail-info-val ${chkOk ? 'ok' : 'bad'}">${chkCalcHex}</span>
+            </div>
+            <div class="pkt-detail-info-row">
+              <span class="pkt-detail-info-key">Resultado</span>
+              <span class="pkt-detail-info-val ${chkOk ? 'ok' : 'bad'}">${chkOk ? '✓ Correcto' : '✗ Erróneo'}</span>
+            </div>
+            <div class="pkt-detail-info-row" style="margin-top:8px;">
+              <span class="pkt-detail-info-key">Tamaño paquete</span>
+              <span class="pkt-detail-info-val">${size} bytes</span>
+            </div>
+            <div class="pkt-detail-info-row">
+              <span class="pkt-detail-info-key">Offset en fichero</span>
+              <span class="pkt-detail-info-val">0x${offset.toString(16).toUpperCase().padStart(6,'0')} (${offset})</span>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+
+  trEl.insertAdjacentHTML('afterend', detailHtml);
+  trEl.classList.add('pkt-row-selected');
+  _lastDetailIdx = idx;
 }
 
 function renderTable() {
@@ -2298,13 +2732,24 @@ function populateDateSelects() {
 }
 
 function applyFilters() {
-  const fName    = document.getElementById('f-name').value.trim().toLowerCase();
-  const fFrom    = document.getElementById('f-date-from').value;
-  const fTo      = document.getElementById('f-date-to').value;
-  const fChk     = document.getElementById('f-chk').value;
-  const fSensado = document.getElementById('f-sensado').value;
-  const fPktFrom = document.getElementById('f-pkt-from').value !== '' ? parseInt(document.getElementById('f-pkt-from').value) : null;
-  const fPktTo   = document.getElementById('f-pkt-to').value   !== '' ? parseInt(document.getElementById('f-pkt-to').value)   : null;
+  const fName     = document.getElementById('f-name').value.trim().toLowerCase();
+  const fFrom     = document.getElementById('f-date-from').value;
+  const fTo       = document.getElementById('f-date-to').value;
+  const fTimeFrom = document.getElementById('f-time-from').value;   // "HH:MM" o "HH:MM:SS"
+  const fTimeTo   = document.getElementById('f-time-to').value;
+  const fChk      = document.getElementById('f-chk').value;
+  const fSensado  = document.getElementById('f-sensado').value;
+  const fPktFrom  = document.getElementById('f-pkt-from').value !== '' ? parseInt(document.getElementById('f-pkt-from').value) : null;
+  const fPktTo    = document.getElementById('f-pkt-to').value   !== '' ? parseInt(document.getElementById('f-pkt-to').value)   : null;
+
+  // Convertir "HH:MM" o "HH:MM:SS" a segundos desde medianoche para comparación rápida
+  const timeToSec = t => {
+    if (!t) return null;
+    const parts = t.split(':').map(Number);
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  };
+  const secFrom = timeToSec(fTimeFrom);
+  const secTo   = timeToSec(fTimeTo);
 
   filteredPackets = allPackets.filter(p => {
     // Filtro código
@@ -2314,10 +2759,19 @@ function applyFilters() {
     // Filtro fechas
     if (fFrom && p.tsDate && p.tsDate.toISOString().slice(0,10) < fFrom) return false;
     if (fTo   && p.tsDate && p.tsDate.toISOString().slice(0,10) > fTo)   return false;
+    // Filtro hora (sobre la hora UTC del paquete)
+    if ((secFrom !== null || secTo !== null) && p.tsDate) {
+      const h = p.tsDate.getUTCHours();
+      const m = p.tsDate.getUTCMinutes();
+      const s = p.tsDate.getUTCSeconds();
+      const pSec = h * 3600 + m * 60 + s;
+      if (secFrom !== null && pSec < secFrom) return false;
+      if (secTo   !== null && pSec > secTo)   return false;
+    }
     // Filtro checksum
     if (fChk === 'ok'  && !p.chkOk) return false;
     if (fChk === 'err' &&  p.chkOk) return false;
-    // Filtro sensado: comparación exacta con el valor del campo sensado
+    // Filtro sensado
     if (fSensado) {
       if (fSensado === 'ninguno') {
         if (p.sensado) return false;
@@ -2325,7 +2779,7 @@ function applyFilters() {
         if (p.sensado !== fSensado) return false;
       }
     }
-    // Filtro rango de paquetes (por número de paquete del fichero)
+    // Filtro rango de paquetes
     if (fPktFrom !== null && p.num < fPktFrom) return false;
     if (fPktTo   !== null && p.num > fPktTo)   return false;
     return true;
@@ -2339,6 +2793,8 @@ function clearFilters() {
   document.getElementById('f-name').value        = '';
   document.getElementById('f-date-from').value   = '';
   document.getElementById('f-date-to').value     = '';
+  document.getElementById('f-time-from').value   = '00:00:00';
+  document.getElementById('f-time-to').value     = '23:59:59';
   document.getElementById('f-chk').value         = '';
   document.getElementById('f-sensado').value     = '';
   document.getElementById('f-pkt-from').value    = '';
@@ -2375,6 +2831,15 @@ function exportCSV() {
       : s;
   };
 
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const meta = [
+    '# Analizador CLS \u00b7 ASFA Digital V\u00eda',
+    '# Usuario: ' + (currentUser || '\u2014'),
+    '# Fecha exportaci\u00f3n: ' + now,
+    '# Fichero: ' + (document.getElementById('fi-name').textContent || '\u2014'),
+    '',
+  ].join('\r\n');
+
   const lines = [headers.join(SEP)];
 
   filteredPackets.forEach(p => {
@@ -2390,7 +2855,7 @@ function exportCSV() {
   });
 
   const bom  = '\uFEFF'; // BOM UTF-8 para compatibilidad con Excel
-  const blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([bom + meta + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const fname = (document.getElementById('fi-name').textContent || 'registro').replace(/\.[^.]+$/, '');
@@ -2445,6 +2910,12 @@ function countJumpErrors() {
   return count;
 }
 
+function countSensadoIncong() {
+  // Cuenta el número de paquetes cuyo campo sensado (en el momento de registrarse)
+  // es un estado incongruente. Solo paquetes con ts válido para excluir paquetes sin tiempo.
+  return allPackets.filter(p => p.ts > 0 && isSensadoIncong(p.sensado)).length;
+}
+
 function hasNonConsecutiveNums() {
   for (let i = 1; i < allPackets.length; i++) {
     if (allPackets[i].num !== allPackets[i-1].num + 1) return true;
@@ -2453,7 +2924,100 @@ function hasNonConsecutiveNums() {
 }
 
 function hasPktCountMismatch() {
+  if (cabeceraErrors.tamanoIncorrecto) return false; // no aplicable con cabecera incorrecta
   return numPktsDeclarado !== allPackets.length;
+}
+
+// Comprueba que cuando existe detección activa (FE4x con val>0) exista el correspondiente
+// paquete de valor (FE4x+1) con val>0 en el mismo período de activación.
+// Devuelve un array de objetos con los detalles de cada incidencia.
+function computeDeteccionSinValor() {
+  const PARES = [
+    { detCode: 'FE40', valCode: 'FE41', label: 'Verde' },
+    { detCode: 'FE42', valCode: 'FE43', label: 'Amarillo' },
+    { detCode: 'FE44', valCode: 'FE45', label: 'Rojo' },
+    { detCode: 'FE46', valCode: 'FE47', label: 'Pantalla' },
+  ];
+
+  const errores = [];
+
+  PARES.forEach(({ detCode, valCode, label }) => {
+    const detPkts = allPackets
+      .filter(p => p.code === detCode && p.ts > 0)
+      .sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+    const valPkts = allPackets
+      .filter(p => p.code === valCode && p.ts > 0)
+      .sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+
+    // Para cada intervalo de detección activa, buscar si existe algún valCode con val>0
+    for (let i = 0; i < detPkts.length; i++) {
+      const p = detPkts[i];
+      const mask = (detCode === 'FE40' || detCode === 'FE42') ? 0x3 : 0x1;
+      if ((p.val & mask) === 0) continue;   // no activo
+
+      const tStart = p.ts * 1000 + p.ms;
+      const next   = detPkts[i + 1];
+      const tEnd   = next ? next.ts * 1000 + next.ms : tStart + 60000; // ventana 60s si no hay cierre
+
+      // Buscar si hay al menos un valCode con val>0 dentro del intervalo
+      const hayValor = valPkts.some(v => {
+        const tv = v.ts * 1000 + v.ms;
+        return tv >= tStart && tv <= tEnd && (v.val & 0xFF) > 0;
+      });
+
+      if (!hayValor) {
+        const tsStr = p.tsDate ? p.tsDate.toISOString().replace('T', ' ').slice(0, 19) : '—';
+        errores.push({ num: p.num, detCode, valCode, label, ts: tsStr, ms: p.ms, val: p.val });
+      }
+    }
+  });
+
+  return errores;
+}
+
+function countDeteccionSinValor() {
+  const n = computeDeteccionSinValor().length;
+  return n > 20 ? 1 : n;
+}
+
+// Calcula estadísticas de eficacia incompleta basadas en tiempo de registro.
+// Para cada intervalo [pkt[i] → pkt[i+1]] con timestamp válido, acumula:
+//   - tiempoTotal: suma de todos los intervalos válidos (= duración total del registro)
+//   - tiempoSinEficacia: suma de los intervalos en que pkt[i].eficaciaCompleta === false
+// Se excluyen intervalos con salto negativo o superior a MAX_GAP_MS (4 h).
+const _EFIC_MAX_GAP_MS = 4 * 3600 * 1000;
+function computeEficaciaIncompleta() {
+  if (!allPackets.length) return { count: 0, totalMs: 0, sinEficaciaMs: 0, pct: '0.00' };
+
+  let tiempoTotal    = 0;
+  let sinEficaciaMs  = 0;
+  let count          = 0;
+
+  for (let i = 0; i < allPackets.length - 1; i++) {
+    const cur  = allPackets[i];
+    const nxt  = allPackets[i + 1];
+    if (!cur.ts || !nxt.ts) continue;
+    const tCur = cur.ts * 1000 + cur.ms;
+    const tNxt = nxt.ts * 1000 + nxt.ms;
+    const diff = tNxt - tCur;
+    if (diff <= 0 || diff > _EFIC_MAX_GAP_MS) continue;
+    tiempoTotal += diff;
+    if (!cur.eficaciaCompleta) {
+      sinEficaciaMs += diff;
+    }
+  }
+  // count = nº de paquetes con eficaciaCompleta === false (para el badge numérico)
+  count = allPackets.filter(p => !p.eficaciaCompleta).length;
+  const pct = tiempoTotal > 0 ? (sinEficaciaMs / tiempoTotal * 100).toFixed(2) : '0.00';
+  return { count, totalMs: tiempoTotal, sinEficaciaMs, pct };
+}
+
+// Devuelve { count, pct } — paquetes con checksum erróneo sobre el total.
+function computeChkError() {
+  if (!allPackets.length) return { count: 0, pct: '0.00' };
+  const count = allPackets.filter(p => !p.chkOk).length;
+  const pct   = (count / allPackets.length * 100).toFixed(2);
+  return { count, pct };
 }
 
 function updateErrorBadge() {
@@ -2466,7 +3030,13 @@ function updateErrorBadge() {
     + (cabeceraErrors.versionError ? 1 : 0);
   const hasFallos = allPackets.some(p => falloCodesSetB.has(p.code)) ? 1 : 0;
   const _bEncAp = computeEncApErrors().errorCount;
-  const n = fileNameErrCount + cabErrCount + countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0) + hasFallos + _bEncAp;
+  const _nIncong  = countSensadoIncong();
+  const _nDetSinV = countDeteccionSinValor();
+  const _eficInc  = computeEficaciaIncompleta();
+  const _eficIncErr = _eficInc.count > 0 ? 1 : 0;
+  const _chkErr   = computeChkError();
+  const _chkErrN  = _chkErr.count > 0 ? 1 : 0;
+  const n = fileNameErrCount + cabErrCount + countJumpErrors() + (hasNonConsecutiveNums() ? 1 : 0) + (hasPktCountMismatch() ? 1 : 0) + hasFallos + _bEncAp + _nIncong + _nDetSinV + _eficIncErr + _chkErrN;
   const tabBtn = document.getElementById('tab-btn-errores');
   tabBtn.textContent = n > 0 ? `Errores Detectados (${n})` : 'Errores Detectados';
   tabBtn.style.color = n > 0 ? 'var(--red)' : '';
@@ -2518,7 +3088,15 @@ function renderErrors() {
 
   const _encAp = computeEncApErrors();
   const _encApErr = _encAp.errorCount;
-  const totalErrors = (fileNameOk ? 0 : 1) + cabErrs.length + jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1) + (totalFalloPkts > 0 ? 1 : 0) + _encApErr;
+  const _nIncong  = countSensadoIncong();
+  const _detSinV  = computeDeteccionSinValor();
+  const _nDetSinV = _detSinV.length;
+  const _nDetSinVErr = _nDetSinV > 20 ? 1 : _nDetSinV;
+  const _eficInc  = computeEficaciaIncompleta();
+  const _eficIncErr = _eficInc.count > 0 ? 1 : 0;
+  const _chkErr   = computeChkError();
+  const _chkErrN  = _chkErr.count > 0 ? 1 : 0;
+  const totalErrors = (fileNameOk ? 0 : 1) + cabErrs.length + jumpErrors.length + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1) + (totalFalloPkts > 0 ? 1 : 0) + _encApErr + _nIncong + _nDetSinVErr + _eficIncErr + _chkErrN;
   document.getElementById('err-summary').innerHTML = `
     <div class="err-summary-bar">
       <div class="err-badge">
@@ -2561,6 +3139,30 @@ function renderErrors() {
         <div>
           <div class="err-count ${_encApErr === 0 ? 'zero' : ''}">${_encApErr}</div>
           <div class="err-name">Errores encendido / apagado</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${_nIncong === 0 ? 'zero' : ''}">${_nIncong}</div>
+          <div class="err-name">Aspectos de sensado incongruentes</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${_nDetSinV === 0 ? 'zero' : ''}">${_nDetSinV}</div>
+          <div class="err-name">Detecciones sin valor de sensado</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${_eficInc.count === 0 ? 'zero' : ''}">${_eficInc.pct}%</div>
+          <div class="err-name">Tiempo sin eficacia completa</div>
+        </div>
+      </div>
+      <div class="err-badge">
+        <div>
+          <div class="err-count ${_chkErr.count === 0 ? 'zero' : ''}">${_chkErr.pct}%</div>
+          <div class="err-name">Paquetes checksum erróneo</div>
         </div>
       </div>
     </div>`;
@@ -2664,11 +3266,15 @@ function renderErrors() {
   }
 
   // Sección 3: discrepancia paquetes declarados vs leídos
-  const pktTitle = pktCountOk
-    ? `<div class="err-section-title ok">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">0</span></div>`
-    : `<div class="err-section-title">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">1</span></div>`;
+  const pktTitle = cabeceraErrors.tamanoIncorrecto
+    ? `<div class="err-section-title" style="color:var(--muted);">Discrepancia nº paquetes declarados/leídos <span class="err-section-count" style="color:var(--muted);">N/A</span></div>`
+    : pktCountOk
+      ? `<div class="err-section-title ok">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">0</span></div>`
+      : `<div class="err-section-title">Discrepancia nº paquetes declarados/leídos <span class="err-section-count">1</span></div>`;
 
-  if (pktCountOk) {
+  if (cabeceraErrors.tamanoIncorrecto) {
+    sectionsHtml += `<div class="err-section">${pktTitle}<div class="err-none" style="color:var(--muted);">— No aplicable: cabecera con tamaño incorrecto, el número de paquetes declarado no es fiable.</div></div>`;
+  } else if (pktCountOk) {
     sectionsHtml += `<div class="err-section">${pktTitle}<div class="err-none">✓ El número de paquetes declarado en cabecera (${numPktsDeclarado}) coincide con los leídos (${allPackets.length}).</div></div>`;
   } else {
     sectionsHtml += `
@@ -2763,7 +3369,161 @@ function renderErrors() {
   encApHtml += '</div>';
   sectionsHtml += encApHtml;
 
-  const encApErrors = (sinEncendido ? 1 : 0) + (sinApagado ? 1 : 0) + nGruposErr;
+  // ── Sección 6: Aspectos de sensado incongruentes ─────────────────────────
+  const incongPkts = allPackets.filter(p => p.ts > 0 && isSensadoIncong(p.sensado));
+  const nIncong = incongPkts.length;
+  const incongTitle = nIncong === 0
+    ? '<div class="err-section-title ok">Aspectos de sensado incongruentes <span class="err-section-count">0</span></div>'
+    : '<div class="err-section-title">Aspectos de sensado incongruentes <span class="err-section-count">' + nIncong + '</span></div>';
+
+  if (nIncong === 0) {
+    sectionsHtml += '<div class="err-section">' + incongTitle
+      + '<div class="err-none">✓ No se han detectado estados de sensado incongruentes.</div></div>';
+  } else {
+    const incongRows = incongPkts.map(p => {
+      const tsStr  = p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '—';
+      return '<tr class="err-row-highlight">'
+        + '<td style="padding:6px 10px;color:var(--muted);">' + p.num + '</td>'
+        + '<td style="padding:6px 10px;color:var(--accent);">' + p.code + '</td>'
+        + '<td style="padding:6px 10px;color:var(--accent2);">' + tsStr + '</td>'
+        + '<td style="padding:6px 10px;color:var(--muted);">' + p.ms + '</td>'
+        + '<td style="padding:6px 10px;font-weight:700;color:#cc2a2a;">⚠ ' + (p.sensado || '') + '</td>'
+        + '</tr>';
+    }).join('');
+    sectionsHtml += '<div class="err-section">' + incongTitle
+      + '<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">'
+      + 'Cada fila corresponde a un paquete registrado mientras el estado de sensado acumulado era incongruente '
+      + '(combinación de aspectos físicamente incompatible).</p>'
+      + '<table style="width:100%;border-collapse:collapse;">'
+      + '<thead><tr style="background:var(--surface2);">'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Nº paquete</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Código</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Timestamp UTC</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">ms</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Sensado</th>'
+      + '</tr></thead><tbody>' + incongRows + '</tbody></table></div>';
+  }
+
+  // ── Sección 7: Detecciones sin valor de sensado ───────────────────────────
+  const detSinVTitle = _nDetSinV === 0
+    ? '<div class="err-section-title ok">Detecciones sin valor de sensado (FE41/43/45/47) <span class="err-section-count">0</span></div>'
+    : '<div class="err-section-title">Detecciones sin valor de sensado (FE41/43/45/47) <span class="err-section-count">' + _nDetSinV + '</span></div>';
+
+  if (_nDetSinV === 0) {
+    sectionsHtml += '<div class="err-section">' + detSinVTitle
+      + '<div class="err-none">✓ Todas las detecciones activas tienen su correspondiente paquete de valor (FE41/43/45/47) con valor &gt; 0.</div></div>';
+  } else if (_nDetSinV > 20) {
+    sectionsHtml += '<div class="err-section">' + detSinVTitle
+      + '<div class="err-row-highlight" style="padding:12px 16px;font-size:13px;line-height:1.6;">'
+      + '⚠ <strong>No se están registrando los valores de sensado.</strong><br>'
+      + '<span style="font-size:12px;color:var(--muted);">Se han detectado <strong>' + _nDetSinV + '</strong> detecciones activas sin su correspondiente paquete de valor '
+      + '(FE41/43/45/47) con valor &gt; 0. El elevado número de incidencias indica que el equipo no está '
+      + 'registrando los valores analógicos de sensado de focos.</span>'
+      + '</div></div>';
+  } else {
+    const detSinVRows = _detSinV.map(e =>
+      '<tr class="err-row-highlight">'
+      + '<td style="padding:6px 10px;color:var(--muted);">' + e.num + '</td>'
+      + '<td style="padding:6px 10px;color:var(--accent);font-weight:700;">' + e.detCode + '</td>'
+      + '<td style="padding:6px 10px;color:var(--text);">' + e.label + '</td>'
+      + '<td style="padding:6px 10px;color:var(--accent2);">' + e.ts + '</td>'
+      + '<td style="padding:6px 10px;color:var(--muted);">' + e.ms + '</td>'
+      + '<td style="padding:6px 10px;color:var(--red);font-weight:600;">⚠ Sin ' + e.valCode + ' con valor &gt; 0</td>'
+      + '</tr>'
+    ).join('');
+    sectionsHtml += '<div class="err-section">' + detSinVTitle
+      + '<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">'
+      + 'Cada fila indica un paquete de detección activa (FE40/42/44/46 con val&nbsp;&gt;&nbsp;0) para el que no existe '
+      + 'ningún paquete del código de valor correspondiente (FE41/43/45/47) con valor&nbsp;&gt;&nbsp;0 dentro del mismo intervalo de activación. '
+      + 'Esto puede indicar un fallo en el sensado analógico del foco.</p>'
+      + '<table style="width:100%;border-collapse:collapse;">'
+      + '<thead><tr style="background:var(--surface2);">'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Nº paquete</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Código detección</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Foco</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Timestamp UTC</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">ms</th>'
+      + '<th style="padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);">Incidencia</th>'
+      + '</tr></thead><tbody>' + detSinVRows + '</tbody></table></div>';
+  }
+
+  document.getElementById('err-sections').innerHTML = sectionsHtml;
+
+  const _eficIncSec = _eficInc;
+  const nBalizasPresentes = balizaPresente.reduce((s, v) => s + v, 0);
+  const compPresentes = ['UC', ...['EB1','EB2','EB3','EB4'].filter((_,i) => balizaPresente[i])].join(', ');
+  const eficIncTitle = _eficIncSec.count === 0
+    ? '<div class="err-section-title ok">Tiempo sin eficacia completa <span class="err-section-count">0%</span></div>'
+    : '<div class="err-section-title">Tiempo sin eficacia completa <span class="err-section-count">' + _eficIncSec.pct + '%</span></div>';
+
+  if (_eficIncSec.count === 0) {
+    sectionsHtml += '<div class="err-section">' + eficIncTitle
+      + '<div class="err-none">✓ Durante todo el registro el equipo ha tenido eficacia completa ('
+      + compPresentes + ').</div></div>';
+  } else {
+    const thStyle = 'padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);';
+    const tdK = 'padding:10px 12px;color:var(--muted);font-size:12px;';
+    const tdV = 'padding:10px 12px;font-weight:600;font-size:13px;';
+    sectionsHtml += '<div class="err-section">' + eficIncTitle
+      + '<p style="font-size:12px;color:var(--muted);margin-bottom:12px;">'
+      + 'Componentes presentes según configuración: <strong>' + compPresentes + '</strong>. '
+      + 'Cada intervalo entre paquetes consecutivos con timestamp válido se clasifica según el estado de eficacia al inicio del intervalo.</p>'
+      + '<table style="width:100%;border-collapse:collapse;">'
+      + '<thead><tr style="background:var(--surface2);">'
+      + '<th style="' + thStyle + '">Concepto</th>'
+      + '<th style="' + thStyle + 'text-align:right;">Valor</th>'
+      + '</tr></thead><tbody>'
+      + '<tr style="border-bottom:1px solid var(--border);">'
+      +   '<td style="' + tdK + '">Nº de paquetes sin eficacia completa</td>'
+      +   '<td style="' + tdV + 'text-align:right;color:var(--red);">' + _eficIncSec.count.toLocaleString('es-ES') + '</td>'
+      + '</tr>'
+      + '<tr style="border-bottom:1px solid var(--border);">'
+      +   '<td style="' + tdK + '">Tiempo total de registro (intervalos válidos)</td>'
+      +   '<td style="' + tdV + 'text-align:right;">' + formatMs(_eficIncSec.totalMs) + '</td>'
+      + '</tr>'
+      + '<tr style="border-bottom:1px solid var(--border);">'
+      +   '<td style="' + tdK + '">Tiempo sin eficacia completa</td>'
+      +   '<td style="' + tdV + 'text-align:right;color:var(--red);">' + formatMs(_eficIncSec.sinEficaciaMs) + '</td>'
+      + '</tr>'
+      + '<tr style="background:var(--surface2);">'
+      +   '<td style="' + tdK + 'font-weight:700;color:var(--text);">% tiempo sin eficacia completa</td>'
+      +   '<td style="' + tdV + 'text-align:right;font-size:16px;color:var(--red);">' + _eficIncSec.pct + ' %</td>'
+      + '</tr>'
+      + '</tbody></table></div>';
+  }
+
+  // ── Sección 9: Paquetes con checksum erróneo ─────────────────────────────
+  const chkErrTitle = _chkErr.count === 0
+    ? '<div class="err-section-title ok">Paquetes con checksum erróneo <span class="err-section-count">0%</span></div>'
+    : '<div class="err-section-title">Paquetes con checksum erróneo <span class="err-section-count">' + _chkErr.pct + '%</span></div>';
+
+  if (_chkErr.count === 0) {
+    sectionsHtml += '<div class="err-section">' + chkErrTitle
+      + '<div class="err-none">✓ Todos los paquetes del registro tienen checksum correcto.</div></div>';
+  } else {
+    const thSc = 'padding:6px 10px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:2px solid var(--border);';
+    const tdKc = 'padding:10px 12px;color:var(--muted);font-size:12px;';
+    const tdVc = 'padding:10px 12px;font-weight:600;font-size:13px;';
+    sectionsHtml += '<div class="err-section">' + chkErrTitle
+      + '<table style="width:100%;border-collapse:collapse;">'
+      + '<thead><tr style="background:var(--surface2);">'
+      + '<th style="' + thSc + '">Concepto</th>'
+      + '<th style="' + thSc + 'text-align:right;">Valor</th>'
+      + '</tr></thead><tbody>'
+      + '<tr style="border-bottom:1px solid var(--border);">'
+      +   '<td style="' + tdKc + '">Total paquetes del registro</td>'
+      +   '<td style="' + tdVc + 'text-align:right;">' + allPackets.length.toLocaleString('es-ES') + '</td>'
+      + '</tr>'
+      + '<tr style="border-bottom:1px solid var(--border);">'
+      +   '<td style="' + tdKc + '">Paquetes con checksum erróneo</td>'
+      +   '<td style="' + tdVc + 'text-align:right;color:var(--red);">' + _chkErr.count.toLocaleString('es-ES') + '</td>'
+      + '</tr>'
+      + '<tr style="background:var(--surface2);">'
+      +   '<td style="' + tdKc + 'font-weight:700;color:var(--text);">% paquetes con checksum erróneo</td>'
+      +   '<td style="' + tdVc + 'text-align:right;font-size:16px;color:var(--red);">' + _chkErr.pct + ' %</td>'
+      + '</tr>'
+      + '</tbody></table></div>';
+  }
 
   document.getElementById('err-sections').innerHTML = sectionsHtml;
 
@@ -2920,7 +3680,7 @@ const FONDO_COLORS = {
   7:  ['#e84040', '#991a1a', '#fff'],  // L7/L8 → rojo
   8:  ['#e84040', '#991a1a', '#fff'],  // L8/L7 → rojo
 };
-const FONDO_DEFAULT = ['rgba(0,0,0,0)', '#888', '#555']; // transparente
+const FONDO_DEFAULT = ['#ffffff', '#888', '#555']; // blanco
 
 function getFondoDraw() {
   // Usar el primer fondo presente como referencia para determinar el color del icono.
@@ -3021,6 +3781,7 @@ function renderSensado() {
   }
 
   if (fe00Pkts.length) renderSensadoTimes(fe00Pkts);
+  renderSensadoEstado();
 }
 
 function populateSensadoDates(aspectPkts) {
@@ -3088,11 +3849,15 @@ function renderSensadoH(aspectPkts) {
   const ctx     = canvas.getContext('2d');
 
   const PAD_L = 70, PAD_R = 30, PAD_T = 30, PAD_B = 54;
-  const SYM_R = 14, SLOT_W = 54;
+  const SYM_R = 14;
+  const MAX_CANVAS_W = 16000;
+  const availW = MAX_CANVAS_W - PAD_L - PAD_R;
+  // Adapt slot width: minimum 4px so symbols are at least visible as marks
+  const SLOT_W = Math.max(4, Math.min(54, Math.floor(availW / (aspectPkts.length || 1))));
   const H = PAD_T + SYM_R * 2 + 30 + PAD_B;
   const W = PAD_L + aspectPkts.length * SLOT_W + PAD_R;
 
-  canvas.width  = Math.max(W, scrollEl.clientWidth || 600);
+  canvas.width  = Math.max(Math.min(W, MAX_CANVAS_W), scrollEl.clientWidth || 600);
   canvas.height = H;
   ctx.clearRect(0, 0, canvas.width, H);
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, H);
@@ -3163,9 +3928,12 @@ function renderSensadoV(aspectPkts) {
   const ctx      = canvas.getContext('2d');
 
   const PAD_T = 20, PAD_B = 20, PAD_L = 130, PAD_R = 60;
-  const SYM_R = 14, SLOT_H = 54;
+  const SYM_R = 14;
+  const MAX_CANVAS_H = 16000;
+  const availH = MAX_CANVAS_H - PAD_T - PAD_B;
+  const SLOT_H = Math.max(4, Math.min(54, Math.floor(availH / (aspectPkts.length || 1))));
   const W = PAD_L + SYM_R * 2 + 30 + PAD_R;
-  const H = PAD_T + aspectPkts.length * SLOT_H + PAD_B;
+  const H = Math.min(PAD_T + aspectPkts.length * SLOT_H + PAD_B, MAX_CANVAS_H);
 
   canvas.width  = W;
   canvas.height = Math.max(H, scrollEl.clientHeight || 400);
@@ -3526,7 +4294,15 @@ function renderCE() {
     p.code === 'FF06' || fexxConActivacion.has(p.code)
   );
 
-  if (!fallosPkts.length) {
+  // ── FE01: incongruencia de detección de focos ────────────────────────────
+  // val !== 0 → hay incongruencia activa (activación); val === 0 → resuelta (desactivación)
+  const fe01Pkts = allPackets.filter(p => p.code === 'FE01');
+  const fe01Act   = fe01Pkts.filter(p => (p.val & 0xFFFF) !== 0).length;
+  const fe01Desact = fe01Pkts.filter(p => (p.val & 0xFFFF) === 0).length;
+  const fe01UltimoVal = fe01Pkts.length ? ((fe01Pkts[fe01Pkts.length - 1].val & 0xFFFF) !== 0 ? 1 : 0) : 0;
+  const hasFE01 = fe01Pkts.length > 0;
+
+  if (!fallosPkts.length && !hasFE01) {
     document.getElementById('ce-summary').innerHTML = '';
     document.getElementById('ce-table-wrap').style.display = 'none';
     document.getElementById('ce-empty').style.display = '';
@@ -3565,12 +4341,17 @@ function renderCE() {
   const totalDesact = totalEvt - totalAct;
   const tiposActivos = rows.filter(r => r.ultimoVal === 1).length;
 
-  // Tarjetas resumen
+  // Tarjetas resumen (incluir FE01 en totales)
+  const totalEvtConFE01  = totalEvt  + fe01Pkts.length;
+  const totalActConFE01  = totalAct  + fe01Act;
+  const totalDesConFE01  = totalDesact + fe01Desact;
+  const nTiposConFE01    = rows.length + (hasFE01 ? 1 : 0);
+
   document.getElementById('ce-summary').innerHTML =
-    ceCard('Tipos de fallo distintos', rows.length, '') +
-    ceCard('Total eventos de fallo',   totalEvt,    '') +
-    ceCard('Activaciones totales',     totalAct,    'red') +
-    ceCard('Desactivaciones totales',  totalDesact, 'green') +
+    ceCard('Tipos de fallo distintos', nTiposConFE01, '') +
+    ceCard('Total eventos de fallo',   totalEvtConFE01, '') +
+    ceCard('Activaciones totales',     totalActConFE01, 'red') +
+    ceCard('Desactivaciones totales',  totalDesConFE01, 'green');
 
   // Ordenar
   rows.sort((a, b) => {
@@ -3590,21 +4371,45 @@ function renderCE() {
     return ceSortAsc ? av - bv : bv - av;
   });
 
-  const maxTotal = Math.max(...rows.map(r => r.activaciones + r.desactivaciones), 1);
+  const maxTotalBase = Math.max(...rows.map(r => r.activaciones + r.desactivaciones), 1);
+  const maxTotal = hasFE01 ? Math.max(maxTotalBase, fe01Pkts.length) : maxTotalBase;
 
   const tbody = document.getElementById('ce-body');
-  tbody.innerHTML = rows.map(r => {
+
+  // Fila FE01 (siempre al principio si existe)
+  let fe01Row = '';
+  if (hasFE01) {
+    const fe01Total = fe01Pkts.length;
+    const fe01Pct   = totalEvtConFE01 > 0 ? (fe01Total / totalEvtConFE01 * 100).toFixed(3) : '0.000';
+    const fe01ActW  = Math.round(fe01Act   / maxTotal * 100);
+    const fe01DesW  = Math.round(fe01Desact / maxTotal * 100);
+    const estadoStyle = fe01UltimoVal === 1
+      ? 'color:var(--red);font-weight:700;'
+      : 'color:var(--green);';
+    const estadoTxt = fe01UltimoVal === 1 ? '● Activa' : '○ Resuelta';
+    fe01Row = '<tr style="background:#fff8e1;">'
+      + '<td class="ce-codigo" style="color:var(--accent);">FE01</td>'
+      + '<td class="ce-desc" style="color:var(--text);">Incongruencia detección de focos</td>'
+      + '<td class="ce-act">'    + fe01Act    + '</td>'
+      + '<td class="ce-desact">' + fe01Desact + '</td>'
+      + '<td class="ce-total">'  + fe01Total  + '</td>'
+      + '<td class="ce-pct">'    + fe01Pct    + ' %</td>'
+      + '<td class="ce-bar-cell"><div class="ce-bar-wrap">'
+      +   '<div class="ce-bar-act"    style="width:' + fe01ActW  + '%"></div>'
+      +   '<div class="ce-bar-desact" style="width:' + fe01DesW  + '%"></div>'
+      + '</div></td>'
+      + '</tr>';
+  }
+
+  tbody.innerHTML = fe01Row + rows.map(r => {
     const total   = r.activaciones + r.desactivaciones;
-    const pct     = (total / totalEvt * 100).toFixed(1);
+    const pct     = (total / totalEvtConFE01 * 100).toFixed(3);
     const actW    = Math.round(r.activaciones    / maxTotal * 100);
     const desactW = Math.round(r.desactivaciones / maxTotal * 100);
     // Para FF06 mostrar número con (FF06) entre paréntesis; para FExx el código hex
     const codigoDisplay = r.tipo === 'FF06'
       ? 'FF06 <span style="font-size:11px;color:var(--muted);font-weight:400;">(' + r.codigo + ')</span>'
       : r.codigo;
-    const fabDisplay = r.fabricante === '—'
-      ? '<span style="color:var(--muted);">—</span>'
-      : r.fabricante;
     return '<tr>'
       + '<td class="ce-codigo">' + codigoDisplay + '</td>'
       + '<td class="ce-desc">'   + r.descripcion + '</td>'
@@ -3642,126 +4447,197 @@ function sortCE(col) {
 
 
 // ─── EXPORTAR INFORME PDF DE ERRORES ─────────────────────────────────────────
+function pdfKpi(val, label, isRed) {
+  return '<div class="pdf-kpi">'
+    + '<div class="pdf-kpi-val' + (val === 0 ? ' zero' : isRed ? ' red' : '') + '">' + val + '</div>'
+    + '<div class="pdf-kpi-lbl">' + label + '</div>'
+    + '</div>';
+}
+function pdfSection(title, errCount, body) {
+  const isOk  = errCount === 0;
+  const isNA  = errCount === -1;
+  const label = isNA  ? 'N/A'
+              : isOk  ? '\u2713 Sin errores'
+              : errCount + ' error' + (errCount !== 1 ? 'es' : '');
+  const cls   = isNA ? '' : isOk ? ' ok' : '';
+  const color = isNA ? 'color:#6b7280;' : '';
+  return '<div class="pdf-section">'
+    + '<div class="pdf-section-title">' + title
+    + ' <span class="pdf-count' + cls + '" style="' + color + '">'
+    + label + '</span></div>' + body + '</div>';
+}
+function pdfOk(msg) { return '<div class="pdf-ok">\u2713 ' + msg + '</div>'; }
+function pdfTable(headers, rows, colWidths) {
+  const colgroup = colWidths
+    ? '<colgroup>' + colWidths.map(w => `<col style="width:${w}">`).join('') + '</colgroup>'
+    : '';
+  const fixed = colWidths ? ' data-fixed' : '';
+  const ths = headers.map(h => '<th>' + h + '</th>').join('');
+  const trs = rows.map(r => '<tr class="err-row">' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('');
+  return '<table' + fixed + '>' + colgroup + '<thead><tr>' + ths + '</tr></thead><tbody>' + trs + '</tbody></table>';
+}
+
 function exportErrorPDF() {
-  // Asegurarse de que los errores están calculados
-  const report = document.getElementById('pdf-report');
+  const report   = document.getElementById('pdf-report');
+  const fileName = document.getElementById('fi-name').textContent  || '\u2014';
+  const fileSize = document.getElementById('fi-size').textContent  || '\u2014';
+  const fiPkts   = document.getElementById('fi-pkts').textContent  || '\u2014';
+  const fiSignal = document.getElementById('fi-signal').textContent || '\u2014';
+  const now      = new Date().toLocaleString('es-ES', { timeZone: 'UTC' }) + ' UTC';
 
-  // ── Datos del fichero ────────────────────────────────────────────────────
-  const fileName  = document.getElementById('fi-name').textContent  || '—';
-  const fileSize  = document.getElementById('fi-size').textContent  || '—';
-  const fiPkts    = document.getElementById('fi-pkts').textContent  || '—';
-  const fiSignal  = document.getElementById('fi-signal').textContent || '—';
-  const now       = new Date().toLocaleString('es-ES', { timeZone: 'UTC' }) + ' UTC';
+  const fileNameOk  = fileNameError === null;
+  const cabErrs     = computeCabErrors().map(e => e.replace(/<[^>]+>/g, ''));
+  const numConsecOk = !hasNonConsecutiveNums();
+  const pktCountOk  = !hasPktCountMismatch();
 
-  // ── Recalcular todos los errores ─────────────────────────────────────────
-  // 0. Cabecera
-  const cabErrs = computeCabErrors().map(e => e.replace(/<[^>]+>/g, ''));
-
-  // 1. Saltos temporales
   const jumpErrors = [];
   let prevPkt = null;
   allPackets.forEach(p => {
     if (!p.ts) { prevPkt = null; return; }
     if (prevPkt) {
-      const tPrev = prevPkt.ts * 1000 + prevPkt.ms;
-      const tCurr = p.ts      * 1000 + p.ms;
-      if (tCurr < tPrev) jumpErrors.push({ numPrev: prevPkt.num, tsPrev: prevPkt.tsDate ? prevPkt.tsDate.toISOString().replace('T',' ').slice(0,19) : '—', msPrev: prevPkt.ms, numCurr: p.num, tsCurr: p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '—', msCurr: p.ms, deltaMs: tCurr - tPrev });
+      const tP = prevPkt.ts * 1000 + prevPkt.ms, tC = p.ts * 1000 + p.ms;
+      if (tC < tP) jumpErrors.push({ numPrev: prevPkt.num, tsPrev: prevPkt.tsDate ? prevPkt.tsDate.toISOString().replace('T',' ').slice(0,19) : '\u2014', msPrev: prevPkt.ms, numCurr: p.num, tsCurr: p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '\u2014', msCurr: p.ms, deltaMs: tC - tP });
     }
     prevPkt = p;
   });
 
-  // 2. Numeración
-  const numConsecOk = !hasNonConsecutiveNums();
+  const nFalloPktsP = allPackets.filter(p => FALLO_CODES_ALL.has(p.code)).length;
+  const { ff03: ff03P, ff04: ff04P, sinEncendido: sinEnc, sinApagado: sinAp, grupos: gruposAp } = computeEncApErrors();
+  const encApCount  = (sinEnc ? 1 : 0) + (sinAp ? 1 : 0) + gruposAp.length;
+  const nIncong     = countSensadoIncong();
+  const _pdfEficInc = computeEficaciaIncompleta();
+  const _pdfChkErr  = computeChkError();
+  const _pdfCompPresentes = ['UC', ...['EB1','EB2','EB3','EB4'].filter((_,i) => balizaPresente[i])].join('+');
 
-  // 3. Discrepancia paquetes
-  const pktCountOk = !hasPktCountMismatch();
+  const totalErrors = (fileNameOk ? 0 : 1) + cabErrs.length + jumpErrors.length
+    + (numConsecOk ? 0 : 1) + (pktCountOk ? 0 : 1)
+    + (nFalloPktsP > 0 ? 1 : 0) + encApCount + nIncong
+    + (_pdfEficInc.count > 0 ? 1 : 0) + (_pdfChkErr.count > 0 ? 1 : 0);
 
-  // 4. Fallos
-  const falloCodesSetP = FALLO_CODES_ALL;
-  const nFalloPktsP = allPackets.filter(p => falloCodesSetP.has(p.code)).length;
+  const kpisHtml =
+    pdfKpi(fileNameOk ? 0 : 1,         'Nombre fichero',          !fileNameOk) +
+    pdfKpi(cabErrs.length,              'Errores cabecera',        cabErrs.length > 0) +
+    pdfKpi(jumpErrors.length,           'Saltos temporales',       jumpErrors.length > 0) +
+    pdfKpi(numConsecOk ? 0 : 1,         'Numeraci\u00f3n no consec.',   !numConsecOk) +
+    pdfKpi(pktCountOk  ? 0 : 1,         'Discrepancia paquetes',   !pktCountOk) +
+    pdfKpi(nFalloPktsP,                 'Paquetes de fallo',       nFalloPktsP > 0) +
+    pdfKpi(encApCount,                  'Errores enc./apagado',    encApCount > 0) +
+    pdfKpi(nIncong,                     'Sensados incongruentes',  nIncong > 0) +
+    pdfKpi(_pdfEficInc.pct + '%',       'Sin eficacia completa',   _pdfEficInc.count > 0) +
+    pdfKpi(_pdfChkErr.pct + '%',        'Checksum err\u00f3neo',   _pdfChkErr.count > 0);
 
-  // 4. Fallos — tabla por tipo
+  const sec0 = pdfSection('Nombre de fichero', fileNameOk ? 0 : 1,
+    fileNameOk ? pdfOk('El nombre del fichero cumple el formato esperado AAMMDD_NNNNNN.CLS.')
+    : '<p style="margin:0;font-size:9pt;color:#cc2a2a;">&#9888; Nombre encontrado: <strong>' + (fileNameError || '') + '</strong>. Formato esperado: AAMMDD_NNNNNN.CLS.</p>');
+
+  const sec1 = pdfSection('Errores de cabecera', cabErrs.length,
+    cabErrs.length === 0 ? pdfOk('Cabecera correcta: CRC, checksum y versi\u00f3n de formato OK.')
+    : cabErrs.map(e => '<p style="margin:2pt 0;font-size:9pt;color:#cc2a2a;">&#9888; ' + e + '</p>').join(''));
+
+  const sec2 = pdfSection('Saltos temporales hacia atr\u00e1s', jumpErrors.length,
+    jumpErrors.length === 0 ? pdfOk('No se han detectado saltos temporales hacia atr\u00e1s.')
+    : pdfTable(['N\u00ba paq. anterior','Timestamp anterior','ms','N\u00ba paq. posterior','Timestamp posterior','ms','Diferencia'],
+        jumpErrors.map(e => [e.numPrev, e.tsPrev, e.msPrev, e.numCurr, e.tsCurr, e.msCurr, e.deltaMs.toLocaleString('es-ES') + ' ms'])));
+
+  const sec3a = pdfSection('Numeraci\u00f3n de paquetes no consecutiva', numConsecOk ? 0 : 1,
+    numConsecOk ? pdfOk('La numeraci\u00f3n de paquetes es consecutiva.')
+    : '<p style="margin:0;font-size:9pt;color:#cc2a2a;">&#9888; Los n\u00fameros de paquete no se incrementan de uno en uno en alg\u00fan punto del registro.</p>');
+
+  const sec3b = pdfSection('Discrepancia n\u00ba paquetes declarados/le\u00eddos',
+    cabeceraErrors.tamanoIncorrecto ? -1 : (pktCountOk ? 0 : 1),
+    cabeceraErrors.tamanoIncorrecto
+      ? '<p style="margin:0;font-size:9pt;color:#6b7280;">— No aplicable: cabecera con tama\u00f1o incorrecto, el n\u00famero de paquetes declarado no es fiable.</p>'
+      : pktCountOk
+        ? pdfOk('El n\u00famero de paquetes declarado en cabecera coincide con los le\u00eddos (' + allPackets.length + ').')
+        : '<p style="margin:0;font-size:9pt;color:#cc2a2a;">&#9888; La cabecera declara <strong>' + numPktsDeclarado + '</strong> paquetes pero se han le\u00eddo <strong>' + allPackets.length + '</strong>.</p>');
+
   let sec4Body = '';
   if (nFalloPktsP === 0) {
     sec4Body = pdfOk('No se han registrado paquetes de c\u00f3digos de fallo.');
   } else {
-    const rowsP    = computeFailureMap();
+    const rowsP = computeFailureMap();
     const totalEvtP = rowsP.reduce((s, r) => s + r.act + r.desact, 0);
-    sec4Body = '<p style="margin:0 0 6pt;font-size:9pt;">Existe registro de <strong>'
-      + nFalloPktsP + '</strong> paquete(s) de c\u00f3digos de fallo en <strong>'
-      + rowsP.length + '</strong> tipo(s) distintos.</p>';
-    sec4Body += pdfTable(
-      ['C\u00f3digo', 'Descripci\u00f3n', 'Activaciones', 'Desactivaciones', 'Total', '% s/total'],
-      rowsP.map(r => {
-        const total = r.act + r.desact;
-        const pct   = (total / totalEvtP * 100).toFixed(1) + ' %';
-        const cod   = r.tipo === 'FF06' ? 'FF06 (' + r.codigo + ')' : r.codigo;
-        return [cod, r.descripcion, r.act, r.desact, total, pct];
-      })
-    );
+    sec4Body = '<p style="margin:0 0 6pt;font-size:9pt;">Existe registro de <strong>' + nFalloPktsP + '</strong> paquete(s) en <strong>' + rowsP.length + '</strong> tipo(s) distintos.</p>'
+      + pdfTable(['C\u00f3digo','Descripci\u00f3n','Activaciones','Desactivaciones','Total','% s/total'],
+          rowsP.map(r => { const tot = r.act + r.desact; return [r.tipo === 'FF06' ? 'FF06 (' + r.codigo + ')' : r.codigo, r.descripcion, r.act, r.desact, tot, (tot / totalEvtP * 100).toFixed(3) + ' %']; }),
+          ['10%', '42%', '12%', '16%', '10%', '10%']);
   }
   const sec4 = pdfSection('Paquetes de c\u00f3digos de fallo registrados', nFalloPktsP > 0 ? 1 : 0, sec4Body);
 
-  // 5. Encendido/Apagado
-  const { ff03: ff03P, ff04: ff04P, sinEncendido: sinEnc, sinApagado: sinAp, grupos: gruposAp } = computeEncApErrors();
-
-  // Sección 5: encendido/apagado
-  let encApBody = '';
+  let sec5Body = '';
   if (!sinEnc && !sinAp && gruposAp.length === 0) {
-    encApBody = pdfOk('Secuencia de encendido/apagado correcta. ' + ff03P.length + ' encendido(s) y ' + ff04P.length + ' apagado(s) registrados.');
+    sec5Body = pdfOk('Secuencia de encendido/apagado correcta. ' + ff03P.length + ' encendido(s) y ' + ff04P.length + ' apagado(s) registrados.');
   } else {
-    if (sinEnc) encApBody += '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">⚠ No se ha registrado ningún paquete de encendido (FF03).</p>';
-    else        encApBody += '<p style="margin:2pt 0;font-size:9pt;">✓ ' + ff03P.length + ' paquete(s) de encendido (FF03) registrados.</p>';
-    if (sinAp)  encApBody += '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">⚠ No se ha registrado ningún paquete de apagado (FF04).</p>';
-    else        encApBody += '<p style="margin:2pt 0;font-size:9pt;">✓ ' + ff04P.length + ' paquete(s) de apagado (FF04) registrados.</p>';
+    sec5Body += sinEnc ? '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">&#9888; Sin paquete de encendido (FF03).</p>' : '<p style="margin:2pt 0;font-size:9pt;">\u2713 ' + ff03P.length + ' encendido(s) FF03.</p>';
+    sec5Body += sinAp  ? '<p style="margin:4pt 0;font-size:9pt;color:#cc2a2a;">&#9888; Sin paquete de apagado (FF04).</p>'   : '<p style="margin:2pt 0;font-size:9pt;">\u2713 ' + ff04P.length + ' apagado(s) FF04.</p>';
     if (gruposAp.length > 0) {
       const nPktsAp = gruposAp.reduce((s,g) => s + g.pkts.length, 0);
-      encApBody += '<p style="margin:6pt 0 4pt;font-size:9pt;">Se han detectado <strong>' + nPktsAp + '</strong> paquete(s) tras un apagado sin encendido previo en <strong>' + gruposAp.length + '</strong> intervalo(s):</p>';
-      encApBody += pdfTable(
-        ['#', 'Apagado (FF04)', 'Siguiente encendido (FF03)', 'Paquetes', 'Códigos'],
-        gruposAp.map((g, i) => {
-          const tsAp = g.apagado.tsDate ? g.apagado.tsDate.toISOString().replace('T',' ').slice(0,19) : '—';
-          const tsEn = g.encendido ? (g.encendido.tsDate ? g.encendido.tsDate.toISOString().replace('T',' ').slice(0,19) : '—') : 'Sin FF03 posterior';
-          return [i+1, '#' + g.apagado.num + ' — ' + tsAp, g.encendido ? '#' + g.encendido.num + ' — ' + tsEn : tsEn, g.pkts.length, [...new Set(g.pkts.map(p => p.code))].join(', ')];
-        })
-      );
+      sec5Body += '<p style="margin:6pt 0 4pt;font-size:9pt;">Se detectaron <strong>' + nPktsAp + '</strong> paquete(s) en <strong>' + gruposAp.length + '</strong> intervalo(s) tras apagado sin encendido:</p>'
+        + pdfTable(['#','Apagado (FF04)','Siguiente encendido (FF03)','Paquetes','C\u00f3digos'],
+            gruposAp.map((g,i) => {
+              const tsAp = g.apagado.tsDate ? g.apagado.tsDate.toISOString().replace('T',' ').slice(0,19) : '\u2014';
+              const tsEn = g.encendido ? (g.encendido.tsDate ? g.encendido.tsDate.toISOString().replace('T',' ').slice(0,19) : '\u2014') : 'Sin FF03 posterior';
+              return [i+1, '#'+g.apagado.num+' \u2014 '+tsAp, g.encendido ? '#'+g.encendido.num+' \u2014 '+tsEn : tsEn, g.pkts.length, [...new Set(g.pkts.map(p=>p.code))].join(', ')];
+            }));
     }
   }
-  const encApCount = (sinEnc ? 1 : 0) + (sinAp ? 1 : 0) + gruposAp.length;
-  const sec5 = pdfSection('Encendido / Apagado', encApCount, encApBody);
+  const sec5 = pdfSection('Encendido / Apagado', encApCount, sec5Body);
 
-  // ── Montar el informe ───────────────────────────────────────────────────
+  const incongPkts = allPackets.filter(p => p.ts > 0 && isSensadoIncong(p.sensado));
+  const sec6 = pdfSection('Aspectos de sensado incongruentes', nIncong,
+    nIncong === 0 ? pdfOk('No se han detectado estados de sensado incongruentes.')
+    : pdfTable(['N\u00ba paquete','C\u00f3digo','Timestamp UTC','ms','Sensado'],
+        incongPkts.map(p => [p.num, p.code, p.tsDate ? p.tsDate.toISOString().replace('T',' ').slice(0,19) : '\u2014', p.ms, '&#9888; ' + (p.sensado || '')])));
+
+  let sec7Body = '';
+  if (_pdfEficInc.count === 0) {
+    sec7Body = pdfOk('Durante todo el registro el equipo ha tenido eficacia completa (' + _pdfCompPresentes + ').');
+  } else {
+    sec7Body = '<p style="margin:0 0 6pt;font-size:9pt;">'
+      + 'Componentes presentes seg\u00fan configuraci\u00f3n: <strong>' + _pdfCompPresentes + '</strong>.</p>'
+      + pdfTable(['Concepto', 'Valor'], [
+          ['N\u00ba de paquetes sin eficacia completa',          _pdfEficInc.count.toLocaleString('es-ES')],
+          ['Tiempo total de registro (intervalos v\u00e1lidos)', formatMs(_pdfEficInc.totalMs)],
+          ['Tiempo sin eficacia completa',                       formatMs(_pdfEficInc.sinEficaciaMs)],
+          ['% tiempo sin eficacia completa',                     _pdfEficInc.pct + ' %'],
+        ]);
+  }
+  const sec7 = pdfSection('Tiempo sin eficacia completa', _pdfEficInc.count > 0 ? 1 : 0, sec7Body);
+
+  const sec8Body = _pdfChkErr.count === 0
+    ? pdfOk('Todos los paquetes del registro tienen checksum correcto.')
+    : pdfTable(['Concepto', 'Valor'], [
+        ['Total paquetes del registro',         allPackets.length.toLocaleString('es-ES')],
+        ['Paquetes con checksum err\u00f3neo',  _pdfChkErr.count.toLocaleString('es-ES')],
+        ['% paquetes con checksum err\u00f3neo', _pdfChkErr.pct + ' %'],
+      ]);
+  const sec8 = pdfSection('Paquetes con checksum err\u00f3neo', _pdfChkErr.count > 0 ? 1 : 0, sec8Body);
+
   report.innerHTML =
     '<div class="pdf-header">'
     + '<div class="pdf-title">Informe de Errores Detectados</div>'
-    + '<div class="pdf-subtitle">Analizador CLS · ASFA Digital Vía · ET 03.365.003.7</div>'
+    + '<div class="pdf-subtitle">Analizador CLS \u00b7 ASFA Digital V\u00eda \u00b7 ET 03.365.003.7</div>'
     + '<div class="pdf-meta">'
     + '<span><strong>Fichero:</strong> ' + fileName + '</span>'
-    + '<span><strong>Tamaño:</strong> ' + fileSize + '</span>'
+    + '<span><strong>Tama\u00f1o:</strong> ' + fileSize + '</span>'
     + '<span><strong>Paquetes:</strong> ' + fiPkts + '</span>'
-    + '<span><strong>Señal:</strong> ' + fiSignal + '</span>'
+    + '<span><strong>Se\u00f1al:</strong> ' + fiSignal + '</span>'
+    + '<span><strong>Usuario:</strong> ' + (currentUser || '\u2014') + '</span>'
     + '<span><strong>Generado:</strong> ' + now + '</span>'
-    + '</div>'
-    + '</div>'
+    + '</div></div>'
     + '<div class="pdf-summary-grid">' + kpisHtml + '</div>'
-    + sec0 + sec1 + sec2 + sec3 + sec4 + sec5
+    + sec0 + sec1 + sec2 + sec3a + sec3b + sec4 + sec5 + sec6 + sec7 + sec8
     + '<div class="pdf-footer">'
-    + '<span>Analizador CLS · ASFA Digital Vía</span>'
-    + '<span>Total errores detectados: <strong>' + totalErrors + '</strong></span>'
+    + '<span>Analizador CLS \u00b7 ASFA Digital V\u00eda</span>'
     + '</div>';
 
-  // Imprimir / guardar como PDF — el título de la pestaña se usa como nombre por defecto
-  const originalTitle = document.title;
-  const baseName = fileName.replace(/\.[^.]+$/, '');  // quitar extensión .CLS
-  document.title = baseName;
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { document.title = originalTitle; }, 1000);
-  }, 100);
+  const origTitle = document.title;
+  document.title  = fileName.replace(/\.[^.]+$/, '');
+  setTimeout(() => { window.print(); setTimeout(() => { document.title = origTitle; }, 1000); }, 100);
 }
 
 
-// ─── DEPURACIÓN ───────────────────────────────────────────────────────────────
+// ─── DEPURACIÓN ─────────────────────────────────────────────────────────────────────────
 
 // Definición de campos de la cabecera con offset, longitud, nombre y color
 const HDR_FIELDS = [
@@ -4090,6 +4966,14 @@ function exportDebugCSV() {
 
   const SEP = ',';
   const headers = ['Offset_Hex', 'Num_Paquete'].concat(PKT_FIELDS.map(f => f.name)).concat(['CHK_Calculado_Hex', 'CHK_OK']);
+  const nowDbg = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const metaDbg = [
+    '# Analizador CLS \u00b7 ASFA Digital V\u00eda',
+    '# Usuario: ' + (currentUser || '\u2014'),
+    '# Fecha exportaci\u00f3n: ' + nowDbg,
+    '# Fichero: ' + (document.getElementById('fi-name').textContent || '\u2014'),
+    '',
+  ].join('\r\n');
   const lines   = [headers.join(SEP)];
 
   filtered.forEach(r => {
@@ -4104,7 +4988,7 @@ function exportDebugCSV() {
     lines.push(row.join(SEP));
   });
 
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([metaDbg + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const fname = (document.getElementById('fi-name').textContent || 'registro').replace(/\.[^.]+$/, '');
@@ -4115,6 +4999,346 @@ function exportDebugCSV() {
 }
 
 
+
+// ─── GRÁFICO ESTADO DE SENSADO ────────────────────────────────────────────────
+function renderSensadoEstado() {
+  const wrap     = document.getElementById('sensado-estado-wrap');
+  const canvas   = document.getElementById('sensado-estado-canvas');
+  const scrollEl = document.getElementById('sensado-estado-scroll');
+  if (!wrap || !canvas) return;
+
+  const fFrom   = document.getElementById('sn-date-from').value;
+  const fTo     = document.getElementById('sn-date-to').value;
+
+  // Definición de filas: código FExx, bit de detección, label y color
+  const ROWS = [
+    { code: 'FE40', label: 'V Verde',    color: '#1a8a4a', mask: 0x3 },
+    { code: 'FE42', label: 'A Amarillo', color: '#c47a00', mask: 0x3 },
+    { code: 'FE44', label: 'R Rojo',     color: '#cc2a2a', mask: 0x1 },
+    { code: 'FE46', label: 'P Pantalla', color: '#1a6fba', mask: 0x1 },
+  ];
+
+  // Recoger todos los paquetes de los 4 códigos con ts válido, aplicando filtro fechas
+  const sensorCodes = new Set(ROWS.map(r => r.code));
+  let pkts = allPackets.filter(p => sensorCodes.has(p.code) && p.ts > 0 && p.tsDate);
+  if (fFrom) pkts = pkts.filter(p => p.tsDate.toISOString().slice(0,10) >= fFrom);
+  if (fTo)   pkts = pkts.filter(p => p.tsDate.toISOString().slice(0,10) <= fTo);
+
+  if (!pkts.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  // Ordenar por tiempo para garantizar tMin/tMax correctos
+  pkts.sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+
+  // tMin: ignorar paquetes cuyo timestamp esté muy por delante del siguiente
+  // (paquetes de inicialización con fecha anterior al registro real).
+  // Si el salto entre el paquete[i] y el paquete[i+1] es > 24 h, ese paquete
+  // es un outlier y se descarta para el cálculo del origen de la gráfica.
+  let tMinIdx = 0;
+  for (let i = 0; i < pkts.length - 1; i++) {
+    const gap = (pkts[i + 1].ts * 1000 + pkts[i + 1].ms) - (pkts[i].ts * 1000 + pkts[i].ms);
+    if (gap > 24 * 3600 * 1000) { tMinIdx = i + 1; } else { break; }
+  }
+  const tMin   = pkts[tMinIdx].ts * 1000 + pkts[tMinIdx].ms;
+  // Extender 10 s tras el último paquete sensor para que los segmentos activos sin cierre
+  // tengan espacio visible y no se corten en el borde del canvas.
+  const tMax   = pkts[pkts.length - 1].ts * 1000 + pkts[pkts.length - 1].ms + 10000;
+  const tRange = tMax - tMin || 1;
+
+  const PAD_L = 80, PAD_R = 20, PAD_T = 10, PAD_B = 28;
+  const ROW_H = 16, ROW_GAP = 8;
+  const TOTAL_H = PAD_T + ROWS.length * (ROW_H + ROW_GAP) + PAD_B;
+  const MIN_W   = scrollEl.clientWidth || 800;
+  const W       = Math.min(20000, Math.max(MIN_W, Math.round(tRange / 1000)));
+
+  canvas.width  = W;
+  canvas.height = TOTAL_H;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, TOTAL_H);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, TOTAL_H);
+
+  const tToX = t => PAD_L + Math.round((t - tMin) / tRange * (W - PAD_L - PAD_R));
+
+  ROWS.forEach((row, ri) => {
+    const y    = PAD_T + ri * (ROW_H + ROW_GAP);
+    const yMid = y + ROW_H / 2;
+
+    // Fondo del track
+    ctx.fillStyle = '#e8eaee';
+    ctx.fillRect(PAD_L, y, W - PAD_L - PAD_R, ROW_H);
+
+    // Etiqueta
+    ctx.fillStyle = '#6b7280';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(row.label, PAD_L - 6, yMid);
+
+    // Paquetes de este código, ordenados por tiempo
+    const rowPkts = pkts
+      .filter(p => p.code === row.code)
+      .sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+
+    if (!rowPkts.length) return;
+
+    // Dibujar segmentos: cuando val & mask !== 0 → activo hasta el siguiente paquete del mismo código
+    ctx.fillStyle = row.color;
+    for (let i = 0; i < rowPkts.length; i++) {
+      const p      = rowPkts[i];
+      const active = (p.val & row.mask) !== 0;
+      if (!active) continue;
+
+      const tStart = p.ts * 1000 + p.ms;
+      // Fin del segmento: siguiente paquete del mismo código (o fin del rango)
+      const next   = rowPkts[i + 1];
+      const tEnd   = next ? next.ts * 1000 + next.ms : tMax;
+
+      const x1 = tToX(tStart);
+      const x2 = tToX(tEnd);
+      ctx.fillRect(x1, y + 1, Math.max(x2 - x1, 2), ROW_H - 2);
+    }
+  });
+
+  // ── Banda roja de sensado incongruente ────────────────────────────────────
+  // Reconstruir la línea de tiempo de sensado combinado usando TODOS los paquetes
+  // de los 4 códigos (ordenados) para calcular el estado acumulado en cada instante.
+  // Aprovechar el campo p.sensado que ya lleva el estado acumulado en ese momento.
+  const sensorPktsAll = allPackets
+    .filter(p => ['FE40','FE42','FE44','FE46'].includes(p.code) && p.ts > 0 && p.tsDate)
+    .sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+
+  // Aplicar filtro de fecha igual que pkts
+  const sensorPktsFiltered = sensorPktsAll.filter(p => {
+    if (fFrom && p.tsDate.toISOString().slice(0,10) < fFrom) return false;
+    if (fTo   && p.tsDate.toISOString().slice(0,10) > fTo)   return false;
+    return true;
+  });
+
+  // Construir intervalos donde el estado sea incongruente (guardar también el string de sensado)
+  const incongSegments = [];
+  for (let i = 0; i < sensorPktsFiltered.length; i++) {
+    const p = sensorPktsFiltered[i];
+    if (!isSensadoIncong(p.sensado)) continue;
+    const tStart = p.ts * 1000 + p.ms;
+    const next   = sensorPktsFiltered[i + 1];
+    const tEnd   = next ? next.ts * 1000 + next.ms : tMax;
+    incongSegments.push({ tStart, tEnd, sensado: p.sensado, tsDate: p.tsDate });
+  }
+
+  const tracksTop    = PAD_T;
+  const tracksBottom = PAD_T + ROWS.length * (ROW_H + ROW_GAP) - ROW_GAP;
+  const tracksH      = tracksBottom - tracksTop;
+
+  if (incongSegments.length) {
+    // Banda semitransparente
+    ctx.fillStyle = 'rgba(204, 42, 42, 0.22)';
+    incongSegments.forEach(({ tStart, tEnd }) => {
+      const x1 = tToX(tStart);
+      const x2 = Math.max(tToX(tEnd), x1 + 2);
+      ctx.fillRect(x1, tracksTop, x2 - x1, tracksH);
+    });
+    // Borde rojo
+    ctx.strokeStyle = '#cc2a2a';
+    ctx.lineWidth   = 1.5;
+    incongSegments.forEach(({ tStart, tEnd }) => {
+      const x1 = tToX(tStart);
+      const x2 = Math.max(tToX(tEnd), x1 + 2);
+      ctx.strokeRect(x1, tracksTop, x2 - x1, tracksH);
+    });
+    ctx.lineWidth = 1;
+  }
+
+  // Eje temporal: marcas distribuidas evitando solapamiento
+  const allSorted = pkts.sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const seenDates = new Set();
+  const axisY = PAD_T + ROWS.length * (ROW_H + ROW_GAP) + 2;
+
+  // Ancho aproximado de una etiqueta de hora "HH:MM:SS" a 9px monospace ≈ 54px
+  // Separación mínima entre marcas para no solapar
+  const MIN_PX_BETWEEN = 70;
+  let lastMarkX = -Infinity;
+
+  // Generar candidatos uniformes (~10 marcas) y filtrar por separación mínima
+  const step = Math.max(1, Math.floor(allSorted.length / 10));
+  allSorted.forEach((p, i) => {
+    if (i % step !== 0) return;
+    const x = tToX(p.ts * 1000 + p.ms);
+    if (x - lastMarkX < MIN_PX_BETWEEN) return;   // demasiado cerca de la anterior
+    lastMarkX = x;
+
+    const timeStr = p.tsDate.toISOString().slice(11, 19);
+    const dateStr = p.tsDate.toISOString().slice(0, 10);
+
+    // Hora
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '9px monospace';
+    ctx.fillText(timeStr, x, axisY);
+
+    // Fecha: solo la primera vez que aparece ese día, y solo si no solapa
+    // con la marca de hora que acabamos de poner (siempre hay espacio debajo)
+    if (!seenDates.has(dateStr)) {
+      seenDates.add(dateStr);
+      ctx.fillStyle = '#1a6fba';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(dateStr, x, axisY + 10);
+      ctx.font = '9px monospace';
+    }
+  });
+
+  // ── Tooltip ────────────────────────────────────────────────────────────────
+  const estadoHitAreas = [];
+
+  const attachEstadoTooltip = () => {
+    const rect   = canvas.getBoundingClientRect();
+    const scaleX = rect.width  / canvas.width;
+    const scaleY = rect.height / canvas.height;
+
+    estadoHitAreas.length = 0;
+
+    // 1. Hitareas de incongruencia (prioridad alta — al inicio del array)
+    incongSegments.forEach(seg => {
+      estadoHitAreas.push({
+        type:    'incong',
+        x1:      tToX(seg.tStart) * scaleX,
+        x2:      Math.max(tToX(seg.tEnd), tToX(seg.tStart) + 2) * scaleX,
+        y1:      tracksTop    * scaleY,
+        y2:      tracksBottom * scaleY,
+        sensado: seg.sensado,
+        tsDate:  seg.tsDate,
+      });
+    });
+
+    // 2. Hitareas normales de cada fila
+    ROWS.forEach((row, ri) => {
+      const yCanvas  = PAD_T + ri * (ROW_H + ROW_GAP);
+      const rowPkts2 = allSorted.filter(p => p.code === row.code)
+        .sort((a, b) => (a.ts * 1000 + a.ms) - (b.ts * 1000 + b.ms));
+      rowPkts2.forEach((p, pi) => {
+        const tPkt  = p.ts * 1000 + p.ms;
+        const next  = rowPkts2[pi + 1];
+        const tNext = next ? next.ts * 1000 + next.ms : tMax;
+        estadoHitAreas.push({
+          type: 'row',
+          x1: tToX(tPkt)  * scaleX,
+          x2: tToX(tNext) * scaleX,
+          y1: yCanvas      * scaleY,
+          y2: (yCanvas + ROW_H) * scaleY,
+          p, row
+        });
+      });
+    });
+  };
+
+  attachEstadoTooltip();
+
+  const tooltip = document.getElementById('sensado-tooltip');
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left;
+    const my   = e.clientY - rect.top;
+    const hit  = estadoHitAreas.find(a => mx >= a.x1 && mx <= a.x2 && my >= a.y1 && my <= a.y2);
+
+    if (hit && hit.type === 'incong') {
+      const tsStr = hit.tsDate.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      tooltip.innerHTML =
+        '<span style="color:#cc2a2a;font-weight:700;">⚠ Sensado incongruente</span><br>'
+        + '<strong style="font-size:13px;">' + hit.sensado + '</strong><br>'
+        + '<span style="color:var(--muted);font-size:11px;">Desde ' + tsStr + '</span>';
+      tooltip.style.display = 'block';
+      tooltip.style.left    = (e.clientX + 14) + 'px';
+      tooltip.style.top     = (e.clientY - 10) + 'px';
+    } else if (hit && hit.type === 'row') {
+      const p      = hit.p;
+      const active = (p.val & hit.row.mask) !== 0;
+      const tsStr  = p.tsDate.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+      const estado = active
+        ? '<span style="color:' + hit.row.color + '">● Detectado</span>'
+        : '<span style="color:var(--muted)">○ No detectado</span>';
+      tooltip.innerHTML = '<strong>' + hit.row.label + '</strong><br>' + estado + '<br>' + tsStr + '<br>ms: ' + p.ms + '<br>Nº paquete: ' + p.num;
+      tooltip.style.display = 'block';
+      tooltip.style.left    = (e.clientX + 14) + 'px';
+      tooltip.style.top     = (e.clientY - 10) + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+  window.addEventListener('resize', attachEstadoTooltip, { once: true });
+}
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+function calcPassword(user) {
+  // Contraseña = suma de: charCode(c_i) * (pos_i + (año - 2000))
+  // pos_i: posición 1-based dentro de la cadena
+  const anio = new Date().getFullYear();
+  const offset = anio - 2000;
+  let suma = 0;
+  for (let i = 0; i < user.length; i++) {
+    suma += user.charCodeAt(i) * (i + 1 + offset);
+  }
+  return suma;
+}
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+
+  if (!user) {
+    errEl.textContent = 'Introduce un nombre de usuario.';
+    errEl.classList.add('visible');
+    document.getElementById('login-user').focus();
+    return;
+  }
+
+  const expected = calcPassword(user);
+  const entered  = parseInt(pass, 10);
+
+  if (!isNaN(entered) && entered === expected) {
+    currentUser = user;
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('header-user').textContent = user;
+    errEl.classList.remove('visible');
+  } else {
+    errEl.textContent = 'Usuario o contraseña incorrectos.';
+    errEl.classList.add('visible');
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+  }
+}
+
+function doLogout() {
+  currentUser = '';
+  // Limpiar campos del login
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').classList.remove('visible');
+  document.getElementById('header-user').textContent = '';
+  // Resetear la aplicación y mostrar el overlay de login
+  resetApp();
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-user').focus();
+}
+// ─── ZOOM ─────────────────────────────────────────────────────────────────────
+let _zoomLevel = 1.0;
+function _applyZoom() {
+  document.body.style.zoom = _zoomLevel;
+  document.getElementById('zoom-label').textContent = Math.round(_zoomLevel * 100) + '%';
+}
+function zoomIn()    { _zoomLevel = Math.min((_zoomLevel + 0.1), 2.0); _applyZoom(); }
+function zoomOut()   { _zoomLevel = Math.max((_zoomLevel - 0.1), 0.5); _applyZoom(); }
+function zoomReset() { _zoomLevel = 1.0; _applyZoom(); }
+
+// Zoom con teclado (Ctrl++ / Ctrl+- / Ctrl+0)
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && (e.key === '+' || e.key === '=')) { e.preventDefault(); zoomIn(); }
+  if (e.ctrlKey &&  e.key === '-')                   { e.preventDefault(); zoomOut(); }
+  if (e.ctrlKey &&  e.key === '0')                   { e.preventDefault(); zoomReset(); }
+});
 
 </script>
 </body>
